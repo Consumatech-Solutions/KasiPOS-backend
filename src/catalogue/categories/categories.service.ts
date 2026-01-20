@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { PaginationResult } from '../../common/dto/pagination.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -17,10 +18,22 @@ export class CategoriesService {
     return this.categoriesRepository.save(category);
   }
 
-  async findAll(): Promise<Category[]> {
-    return this.categoriesRepository.find({
+  async findAll(page: number = 1, limit: number = 10): Promise<PaginationResult<Category>> {
+    const [data, total] = await this.categoriesRepository.findAndCount({
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string): Promise<Category> {
