@@ -7,18 +7,20 @@ import { AppService } from './app.service';
 import jwtConfig from './config/jwt.config';
 import databaseConfig from './config/database.config';
 import otpConfig from './config/otp.config';
+import s3Config from './config/s3.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { Category } from './catalogue/categories/entities/category.entity';
 import { Product } from './catalogue/products/entities/product.entity';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, jwtConfig, otpConfig],
+      load: [databaseConfig, jwtConfig, otpConfig, s3Config],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -40,6 +42,7 @@ import { Product } from './catalogue/products/entities/product.entity';
     AuthModule,
     UsersModule,
     CatalogueModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

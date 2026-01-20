@@ -6,12 +6,14 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Products')
@@ -53,34 +55,44 @@ export class ProductsController {
   @Get()
   @ApiOperation({
     summary: 'List all products',
-    description: 'Retrieve a list of all products. Requires authentication.',
+    description: 'Retrieve a paginated list of all products. Requires authentication.',
   })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 10)' })
   @ApiResponse({
     status: 200,
     description: 'Products retrieved successfully',
     schema: {
-      example: [
-        {
-          id: 'uuid-here',
-          name: 'Laptop',
-          category: {
-            id: 'category-uuid',
-            name: 'Electronics',
+      example: {
+        data: [
+          {
+            id: 'uuid-here',
+            name: 'Laptop',
+            category: {
+              id: 'category-uuid',
+              name: 'Electronics',
+            },
+            price: 999.99,
+            costPrice: 700.00,
+            stock: 10,
+            barCode: '1234567890123',
+            productImage: 'https://example.com/image.jpg',
+            createdAt: '2026-01-20T08:00:00.000Z',
+            updatedAt: '2026-01-20T08:00:00.000Z',
           },
-          price: 999.99,
-          costPrice: 700.00,
-          stock: 10,
-          barCode: '1234567890123',
-          productImage: 'https://example.com/image.jpg',
-          createdAt: '2026-01-20T08:00:00.000Z',
-          updatedAt: '2026-01-20T08:00:00.000Z',
+        ],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
         },
-      ],
+      },
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  async findAll() {
-    return this.productsService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.productsService.findAll(paginationDto.page, paginationDto.limit);
   }
 
   @Get(':id')

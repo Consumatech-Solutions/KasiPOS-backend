@@ -5,6 +5,7 @@ import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Category } from '../categories/entities/category.entity';
+import { PaginationResult } from '../../common/dto/pagination.dto';
 
 @Injectable()
 export class ProductsService {
@@ -31,11 +32,23 @@ export class ProductsService {
     return this.productsRepository.save(product);
   }
 
-  async findAll(): Promise<Product[]> {
-    return this.productsRepository.find({
+  async findAll(page: number = 1, limit: number = 10): Promise<PaginationResult<Product>> {
+    const [data, total] = await this.productsRepository.findAndCount({
       relations: ['category'],
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string): Promise<Product> {
