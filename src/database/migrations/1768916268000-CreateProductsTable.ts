@@ -1,23 +1,8 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class CreateCatalogueTables1768913673699 implements MigrationInterface {
+export class CreateProductsTable1768916268000 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Create categories table
-        await queryRunner.query(`
-            CREATE TABLE "categories" (
-                "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-                "name" varchar NOT NULL,
-                "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-                "updated_at" TIMESTAMP NOT NULL DEFAULT now()
-            );
-        `);
-
-        await queryRunner.query(`
-            CREATE INDEX "IDX_categories_name" ON "categories" ("name");
-        `);
-
-        // Create products table
         await queryRunner.query(`
             CREATE TABLE "products" (
                 "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -53,8 +38,6 @@ export class CreateCatalogueTables1768913673699 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "IDX_products_category_id";`);
         await queryRunner.query(`DROP INDEX "IDX_products_name";`);
         await queryRunner.query(`DROP TABLE "products";`);
-        await queryRunner.query(`DROP INDEX "IDX_categories_name";`);
-        await queryRunner.query(`DROP TABLE "categories";`);
     }
 
 }
