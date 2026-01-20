@@ -4,13 +4,14 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PaginationResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-  ) {}
+  ) { }
 
   async findByPhone(phone: string): Promise<User | null> {
     return this.usersRepository.findOne({
@@ -38,9 +39,26 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async findAll(storeId?: number): Promise<User[]> {
-    const where = storeId ? { storeId } : {};
-    return this.usersRepository.find({ where });
+  async findAll(page: number = 1, limit: number = 10, storeId?: number): Promise<PaginationResult<User>> {
+    const [data, total] = await this.usersRepository.findAndCount({
+      where: {
+        ...(storeId ? { storeId } : {}),
+        isActive: true
+      },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async softDelete(id: string): Promise<void> {

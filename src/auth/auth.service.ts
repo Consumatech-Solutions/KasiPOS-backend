@@ -155,4 +155,24 @@ export class AuthService {
     };
     return this.jwtService.sign(payload);
   }
+
+  async updateProfile(userId: string, data: { name?: string }): Promise<User> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if there's anything to update
+    if (Object.keys(data).length > 0) {
+      await this.usersService.update(userId, { name: data.name });
+    }
+
+    return this.usersService.findById(userId);
+  }
+
+  async logout(userId: string): Promise<{ message: string }> {
+    // Ideally we would blacklist the token here if we had a blacklist mechanism
+    // For now we just return success
+    return { message: 'Logged out successfully' };
+  }
 }
