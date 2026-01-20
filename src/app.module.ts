@@ -10,6 +10,9 @@ import otpConfig from './config/otp.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
+import { CatalogueModule } from './catalogue/catalogue.module';
+import { Category } from './catalogue/categories/entities/category.entity';
+import { Product } from './catalogue/products/entities/product.entity';
 
 @Module({
   imports: [
@@ -26,7 +29,7 @@ import { User } from './users/entities/user.entity';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User],
+        entities: [User, Category, Product],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -36,6 +39,7 @@ import { User } from './users/entities/user.entity';
     ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
+    CatalogueModule,
   ],
   controllers: [AppController],
   providers: [AppService],
