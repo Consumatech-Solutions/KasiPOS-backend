@@ -1,0 +1,158 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+import { OtpService } from '../services/otp.service';
+import { User } from '../users/entities/user.entity';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private usersService: UsersService,
+    private otpService: OtpService,
+    private jwtService: JwtService,
+  ) { }
+
+  async requestOtp(phone: string): Promise<{ success: boolean; message: string }> {
+    // Check if user exists
+    const user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      throw new NotFoundException('User not found. Please contact admin for access.');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    // Send OTP via external service
+    const result = await this.otpService.sendOtp(phone);
+
+    if (!result.success) {
+      throw new BadRequestException('Failed to send OTP');
+    }
+
+    return {
+      success: true,
+      message: 'OTP sent successfully',
+    };
+  }
+
+  async verifyOtp(
+    phone: string,
+    code: string,
+  ): Promise<{ tempToken: string; hasPassword: boolean; user: Partial<User> }> {
+    // Verify OTP with external service
+    const isValid = await this.otpService.verifyOtp(phone, code);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid or expired OTP code');
+    }
+
+    // Get user
+    const user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Generate temporary token (short-lived, 10 minutes)
+    const tempToken = this.jwtService.sign(
+      { sub: user.id, phone: user.phone, temp: true },
+      { expiresIn: '10m' },
+    );
+
+    const hasPassword = !!user.passwordHash;
+
+    return {
+      tempToken,
+      hasPassword,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
+        storeId: user.storeId,
+      },
+    };
+  }
+
+  async setPassword(
+    userId: string,
+    password: string,
+  ): Promise<{ accessToken: string; user: User }> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Update password (hashing will be handled by User entity hook)
+    // We casts to any to bypass DTO restriction for internal operation
+    await this.usersService.update(userId, {
+      isActive: true, // Ensure user is active
+      passwordHash: password
+    } as any);
+
+    // Fetch updated user
+    const updatedUser = await this.usersService.findByPhone(user.phone);
+
+    // Generate access token
+    const accessToken = this.generateAccessToken(updatedUser);
+
+    return {
+      accessToken,
+      user: updatedUser,
+    };
+  }
+
+  async login(phone: string, password: string): Promise<{ accessToken: string; user: User }> {
+    const user = await this.usersService.findByPhone(phone);
+
+
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Please set your password first');
+    }
+
+    const isPasswordValid = await user.validatePassword(password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const accessToken = this.generateAccessToken(user);
+
+    return {
+      accessToken,
+      user,
+    };
+  }
+
+  async validateUser(userId: string): Promise<User> {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+    return user;
+  }
+
+  private generateAccessToken(user: User): string {
+    const payload = {
+      sub: user.id,
+      phone: user.phone,
+      role: user.role,
+      storeId: user.storeId,
+    };
+    return this.jwtService.sign(payload);
+  }
+}
