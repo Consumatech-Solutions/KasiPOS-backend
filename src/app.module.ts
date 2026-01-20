@@ -6,12 +6,16 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import jwtConfig from './config/jwt.config';
 import databaseConfig from './config/database.config';
+import otpConfig from './config/otp.config';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, jwtConfig],
+      load: [databaseConfig, jwtConfig, otpConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -22,7 +26,7 @@ import databaseConfig from './config/database.config';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [],
+        entities: [User],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -30,6 +34,8 @@ import databaseConfig from './config/database.config';
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
+    AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
