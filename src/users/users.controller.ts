@@ -7,10 +7,13 @@ import {
   Body,
   Query,
   UseGuards,
+  Post,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Users')
@@ -35,23 +38,31 @@ export class UsersController {
     status: 200,
     description: 'Users retrieved successfully',
     schema: {
-      example: [
-        {
-          id: 'uuid-here',
-          phone: '0812345678',
-          name: 'John Doe',
-          role: 'staff',
-          storeId: 1,
-          isActive: true,
-          createdAt: '2026-01-20T08:00:00.000Z',
-          updatedAt: '2026-01-20T08:00:00.000Z'
+      example: {
+        data: [
+          {
+            id: 'uuid-here',
+            phone: '0812345678',
+            name: 'John Doe',
+            role: 'staff',
+            storeId: 1,
+            isActive: true,
+            createdAt: '2026-01-20T08:00:00.000Z',
+            updatedAt: '2026-01-20T08:00:00.000Z'
+          }
+        ],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
         }
-      ]
+      }
     }
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  async findAll(@Query('storeId') storeId?: number) {
-    return this.usersService.findAll(storeId);
+  async findAll(@Query() paginationDto: PaginationDto, @Query('storeId') storeId?: number) {
+    return this.usersService.findAll(paginationDto.page, paginationDto.limit, storeId);
   }
 
   @Get(':id')
@@ -84,6 +95,33 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
+  }
+
+  @Post()
+  @ApiOperation({
+    summary: 'Create user',
+    description: 'Create a new user (e.g. staff member). Requires authentication.'
+  })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+    schema: {
+      example: {
+        id: 'uuid-here',
+        phone: '0812345678',
+        name: 'John Doe',
+        role: 'staff',
+        storeId: 1,
+        isActive: true,
+        createdAt: '2026-01-20T08:00:00.000Z',
+        updatedAt: '2026-01-20T08:00:00.000Z'
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
   }
 
   @Patch(':id')
