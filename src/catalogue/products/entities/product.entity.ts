@@ -14,7 +14,7 @@ export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ unique: true })
   name: string;
 
   @ManyToOne(() => Category, (category) => category.products, { nullable: false })
