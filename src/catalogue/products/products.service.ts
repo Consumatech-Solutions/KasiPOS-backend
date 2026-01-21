@@ -4,8 +4,10 @@ import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { GetProductsDto } from './dto/get-products.dto';
 import { Category } from '../categories/entities/category.entity';
 import { PaginationResult } from '../../common/dto/pagination.dto';
+import { ILike } from 'typeorm';
 
 @Injectable()
 export class ProductsService {
@@ -39,8 +41,25 @@ export class ProductsService {
     return this.productsRepository.save(product);
   }
 
-  async findAll(page: number = 1, limit: number = 10): Promise<PaginationResult<Product>> {
+  async findAll(query: GetProductsDto): Promise<PaginationResult<Product>> {
+    const { page = 1, limit = 10, search, categoryId } = query;
+
+    const where: any = {};
+
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
+    let whereClause: any = where;
+    if (search) {
+      whereClause = [
+        { ...where, name: ILike(`%${search}%`) },
+        { ...where, barCode: ILike(`%${search}%`) }
+      ];
+    }
+
     const [data, total] = await this.productsRepository.findAndCount({
+      where: whereClause,
       relations: ['category'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,

@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery }
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { GetProductsDto } from './dto/get-products.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Products')
@@ -21,7 +21,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ProductsController {
-  constructor(private productsService: ProductsService) {}
+  constructor(private productsService: ProductsService) { }
 
   @Post()
   @ApiOperation({
@@ -59,6 +59,8 @@ export class ProductsController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 10)' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by product name or barcode' })
+  @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
   @ApiResponse({
     status: 200,
     description: 'Products retrieved successfully',
@@ -91,8 +93,8 @@ export class ProductsController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return this.productsService.findAll(paginationDto.page, paginationDto.limit);
+  async findAll(@Query() query: GetProductsDto) {
+    return this.productsService.findAll(query);
   }
 
   @Get(':id')
