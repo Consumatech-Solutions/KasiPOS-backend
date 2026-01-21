@@ -17,6 +17,8 @@ import { Product } from './catalogue/products/entities/product.entity';
 import { FilesModule } from './files/files.module';
 import { StoresModule } from './stores/stores.module';
 import { Store } from './stores/entities/store.entity';
+import { CustomersModule } from './customers/customers.module';
+import { Customer } from './customers/entities/customer.entity';
 
 @Module({
   imports: [
@@ -33,7 +35,7 @@ import { Store } from './stores/entities/store.entity';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store],
+        entities: [User, Category, Product, Store, Customer],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -46,6 +48,7 @@ import { Store } from './stores/entities/store.entity';
     CatalogueModule,
     FilesModule,
     StoresModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
