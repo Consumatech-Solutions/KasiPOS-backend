@@ -19,6 +19,14 @@ import { StoresModule } from './stores/stores.module';
 import { Store } from './stores/entities/store.entity';
 import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
+import { TransactionsModule } from './transactions/transactions.module';
+import { Transaction } from './transactions/entities/transaction.entity';
+import { StockAdjustmentsModule } from './stock-adjustments/stock-adjustments.module';
+import { StockAdjustment } from './stock-adjustments/entities/stock-adjustment.entity';
+import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
+import { PurchaseOrder } from './purchase-orders/entities/purchase-order.entity';
+import { VouchersModule } from './vouchers/vouchers.module';
+import { Voucher } from './vouchers/entities/voucher.entity';
 
 @Module({
   imports: [
@@ -35,7 +43,7 @@ import { Customer } from './customers/entities/customer.entity';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store, Customer],
+        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -49,6 +57,10 @@ import { Customer } from './customers/entities/customer.entity';
     FilesModule,
     StoresModule,
     CustomersModule,
+    TransactionsModule,
+    StockAdjustmentsModule,
+    PurchaseOrdersModule,
+    VouchersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

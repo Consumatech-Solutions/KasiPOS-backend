@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery }
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
+import { GetCustomersDto } from './dto/get-customers.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Customers')
@@ -21,7 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CustomersController {
-  constructor(private customersService: CustomersService) {}
+  constructor(private customersService: CustomersService) { }
 
   @Post()
   @ApiOperation({
@@ -50,10 +50,11 @@ export class CustomersController {
   @Get()
   @ApiOperation({
     summary: 'List all customers',
-    description: 'Retrieve a paginated list of all customers. Requires authentication.',
+    description: 'Retrieve a paginated list of all customers. Supports search by name or contact. Requires authentication.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 10)' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by customer name or contact' })
   @ApiResponse({
     status: 200,
     description: 'Customers retrieved successfully',
@@ -79,8 +80,8 @@ export class CustomersController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return this.customersService.findAll(paginationDto.page, paginationDto.limit);
+  async findAll(@Query() query: GetCustomersDto) {
+    return this.customersService.findAll(query);
   }
 
   @Get(':id')

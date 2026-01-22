@@ -28,4 +28,8 @@ export class CreateProductDto {
   @IsString()
   @IsOptional()
   productImage?: string;
+
+  @IsNumber()
+  @IsOptional()
+  lowStockThreshold?: number;
 }
