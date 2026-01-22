@@ -39,6 +39,9 @@ export class Product {
   @Column({ name: 'product_image', nullable: true })
   productImage: string | null;
 
+  @Column({ name: 'low_stock_threshold', type: 'int', nullable: true, default: 0 })
+  lowStockThreshold: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
