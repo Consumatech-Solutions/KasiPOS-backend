@@ -27,6 +27,12 @@ import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { PurchaseOrder } from './purchase-orders/entities/purchase-order.entity';
 import { VouchersModule } from './vouchers/vouchers.module';
 import { Voucher } from './vouchers/entities/voucher.entity';
+import { MarketplaceOrdersModule } from './marketplace-orders/marketplace-orders.module';
+import { MarketplaceOrder } from './marketplace-orders/entities/marketplace-order.entity';
+import { MarketplaceStoresModule } from './marketplace-stores/marketplace-stores.module';
+import { MarketplaceStore } from './marketplace-stores/entities/marketplace-store.entity';
+import { ParcelsModule } from './parcels/parcels.module';
+import { Parcel } from './parcels/entities/parcel.entity';
 
 @Module({
   imports: [
@@ -43,7 +49,7 @@ import { Voucher } from './vouchers/entities/voucher.entity';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher],
+        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -61,6 +67,9 @@ import { Voucher } from './vouchers/entities/voucher.entity';
     StockAdjustmentsModule,
     PurchaseOrdersModule,
     VouchersModule,
+    MarketplaceOrdersModule,
+    MarketplaceStoresModule,
+    ParcelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,17 +1,28 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { PurchaseOrder, PurchaseOrderStatus } from './entities/purchase-order.entity';
+import { Repository, DataSource } from 'typeorm';
+import {
+  PurchaseOrder,
+  PurchaseOrderStatus,
+} from './entities/purchase-order.entity';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { GetPurchaseOrdersDto } from './dto/get-purchase-orders.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
+import { Product } from '../catalogue/products/entities/product.entity';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @InjectRepository(PurchaseOrder)
     private purchaseOrdersRepository: Repository<PurchaseOrder>,
+    @InjectRepository(Product)
+    private productsRepository: Repository<Product>,
+    private dataSource: DataSource,
   ) {}
 
   private generateOrderCode(): string {
@@ -20,9 +31,14 @@ export class PurchaseOrdersService {
     return prefix + randomNum;
   }
 
-  async create(dto: CreatePurchaseOrderDto, storeId: number): Promise<PurchaseOrder> {
+  async create(
+    dto: CreatePurchaseOrderDto,
+    storeId: number,
+  ): Promise<PurchaseOrder> {
     if (!dto.items || dto.items.length === 0) {
-      throw new BadRequestException('Purchase order must contain at least one item');
+      throw new BadRequestException(
+        'Purchase order must contain at least one item',
+      );
     }
 
     // Generate unique order code
@@ -60,7 +76,10 @@ export class PurchaseOrdersService {
     return this.purchaseOrdersRepository.save(order);
   }
 
-  async findAll(query: GetPurchaseOrdersDto, storeId: number): Promise<PaginationResult<PurchaseOrder>> {
+  async findAll(
+    query: GetPurchaseOrdersDto,
+    storeId: number,
+  ): Promise<PaginationResult<PurchaseOrder>> {
     const { page = 1, limit = 10 } = query;
 
     const [data, total] = await this.purchaseOrdersRepository.findAndCount({
@@ -95,11 +114,55 @@ export class PurchaseOrdersService {
     return order;
   }
 
-  async updateStatus(id: string, dto: UpdatePurchaseOrderDto, storeId: number): Promise<PurchaseOrder> {
+  async updateStatus(
+    id: string,
+    dto: UpdatePurchaseOrderDto,
+    storeId: number,
+  ): Promise<PurchaseOrder> {
     const order = await this.findOne(id, storeId);
+    const previousStatus = order.status;
+    const newStatus = dto.status as PurchaseOrderStatus;
 
+    // If status is changing to completed, update product stock
+    if (
+      dto.status !== undefined &&
+      newStatus === PurchaseOrderStatus.COMPLETED &&
+      previousStatus !== PurchaseOrderStatus.COMPLETED
+    ) {
+      return this.dataSource.transaction(async (manager) => {
+        // Update order status
+        order.status = newStatus;
+        const savedOrder = await manager
+          .getRepository(PurchaseOrder)
+          .save(order);
+
+        // Update stock for each product in the order
+        for (const item of order.items) {
+          const product = await manager.getRepository(Product).findOne({
+            where: { id: item.productId },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (!product) {
+            console.warn(
+              `Product not found: ${item.productId} in purchase order ${order.orderCode}`,
+            );
+            continue;
+          }
+
+          // Increase stock by the quantity ordered
+          const currentStock = product.stock ?? 0;
+          product.stock = currentStock + item.quantity;
+          await manager.getRepository(Product).save(product);
+        }
+
+        return savedOrder;
+      });
+    }
+
+    // For other status changes, just update the status
     if (dto.status !== undefined) {
-      order.status = dto.status as PurchaseOrderStatus;
+      order.status = newStatus;
     }
 
     return this.purchaseOrdersRepository.save(order);

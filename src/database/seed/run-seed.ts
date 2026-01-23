@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { dataSourceOptions } from '../data-source';
 import { seedAdminUser } from './admin-user.seed';
 import { seedStore } from './store.seed';
+import { seedMarketplaceStores } from './marketplace-stores.seed';
 
 async function runSeed() {
   const dataSource = new DataSource(dataSourceOptions);
@@ -12,6 +13,7 @@ async function runSeed() {
 
     await seedAdminUser(dataSource);
     await seedStore(dataSource);
+    await seedMarketplaceStores(dataSource);
 
     console.log('\n✅ All seeds completed successfully!');
   } catch (error) {
