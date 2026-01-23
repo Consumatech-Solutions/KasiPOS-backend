@@ -11,12 +11,22 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-  ) { }
+  ) {}
 
   async findByPhone(phone: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { phone },
-      select: ['id', 'phone', 'name', 'role', 'storeId', 'isActive', 'createdAt', 'updatedAt', 'passwordHash'],
+      select: [
+        'id',
+        'phone',
+        'name',
+        'role',
+        'storeId',
+        'isActive',
+        'createdAt',
+        'updatedAt',
+        'passwordHash',
+      ],
     });
   }
 
@@ -35,15 +45,25 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // If password is provided, set it as passwordHash (will be hashed by entity hook)
+    if (updateUserDto.password) {
+      (user as any).passwordHash = updateUserDto.password;
+      delete (updateUserDto as any).password;
+    }
+
     Object.assign(user, updateUserDto);
     return this.usersRepository.save(user);
   }
 
-  async findAll(page: number = 1, limit: number = 10, storeId?: number): Promise<PaginationResult<User>> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    storeId?: number,
+  ): Promise<PaginationResult<User>> {
     const [data, total] = await this.usersRepository.findAndCount({
       where: {
         ...(storeId ? { storeId } : {}),
-        isActive: true
+        isActive: true,
       },
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
