@@ -47,7 +47,7 @@ export class PurchaseOrdersController {
     description: 'Retrieve a paginated list of purchase orders for the current store. Requires authentication.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 10)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 100)' })
   @ApiResponse({
     status: 200,
     description: 'Purchase orders retrieved successfully',

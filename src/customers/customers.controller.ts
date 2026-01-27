@@ -9,7 +9,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -21,7 +28,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CustomersController {
-  constructor(private customersService: CustomersService) { }
+  constructor(private customersService: CustomersService) {}
 
   @Post()
   @ApiOperation({
@@ -42,7 +49,10 @@ export class CustomersController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async create(@Body() createCustomerDto: CreateCustomerDto) {
     return this.customersService.create(createCustomerDto);
   }
@@ -50,11 +60,27 @@ export class CustomersController {
   @Get()
   @ApiOperation({
     summary: 'List all customers',
-    description: 'Retrieve a paginated list of all customers. Supports search by name or contact. Requires authentication.',
+    description:
+      'Retrieve a paginated list of all customers. Supports search by name or contact. Requires authentication.',
   })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 10)' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by customer name or contact' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by customer name or contact',
+  })
   @ApiResponse({
     status: 200,
     description: 'Customers retrieved successfully',
@@ -79,7 +105,10 @@ export class CustomersController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async findAll(@Query() query: GetCustomersDto) {
     return this.customersService.findAll(query);
   }
@@ -87,7 +116,8 @@ export class CustomersController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get customer by ID',
-    description: 'Retrieve a specific customer by its unique ID. Requires authentication.',
+    description:
+      'Retrieve a specific customer by its unique ID. Requires authentication.',
   })
   @ApiParam({
     name: 'id',
@@ -108,7 +138,10 @@ export class CustomersController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async findOne(@Param('id') id: string) {
     return this.customersService.findOne(id);
@@ -138,9 +171,15 @@ export class CustomersController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Customer not found' })
-  async update(@Param('id') id: string, @Body() updateCustomerDto: UpdateCustomerDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateCustomerDto: UpdateCustomerDto,
+  ) {
     return this.customersService.update(id, updateCustomerDto);
   }
 
@@ -163,7 +202,10 @@ export class CustomersController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async remove(@Param('id') id: string) {
     await this.customersService.remove(id);

@@ -38,7 +38,7 @@ export class StockAdjustmentsController {
     description: 'Retrieve a paginated list of stock adjustments. Requires authentication.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 10)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 100)' })
   @ApiQuery({ name: 'productId', required: false, type: String, description: 'Filter by product ID' })
   @ApiResponse({
     status: 200,
