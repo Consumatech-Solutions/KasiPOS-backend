@@ -51,7 +51,7 @@ export class TransactionsController {
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Items per page (default: 10, max: 10)',
+    description: 'Items per page (default: 10, max: 100)',
   })
   @ApiQuery({
     name: 'date',

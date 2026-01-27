@@ -35,14 +35,21 @@ export class VouchersController {
   @Post()
   @ApiOperation({
     summary: 'Create a voucher',
-    description: 'Create a new discount voucher. Code must be unique per store. Requires authentication.',
+    description:
+      'Create a new discount voucher. Code must be unique per store. Requires authentication.',
   })
   @ApiResponse({
     status: 201,
     description: 'Voucher created successfully',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  @ApiResponse({ status: 409, description: 'Voucher code already exists for this store' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Voucher code already exists for this store',
+  })
   async create(@Body() dto: CreateVoucherDto, @Request() req) {
     const storeId = req.user?.storeId;
     if (!storeId) {
@@ -54,7 +61,8 @@ export class VouchersController {
   @Get()
   @ApiOperation({
     summary: 'List vouchers',
-    description: 'Retrieve a paginated list of vouchers for the current store. Requires authentication.',
+    description:
+      'Retrieve a paginated list of vouchers for the current store. Requires authentication.',
   })
   @ApiQuery({
     name: 'page',
@@ -66,7 +74,7 @@ export class VouchersController {
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Items per page (default: 10, max: 10)',
+    description: 'Items per page (default: 10, max: 100)',
   })
   @ApiQuery({
     name: 'isActive',
@@ -78,7 +86,10 @@ export class VouchersController {
     status: 200,
     description: 'Vouchers retrieved successfully',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async findAll(@Query() query: GetVouchersDto, @Request() req) {
     const storeId = req.user?.storeId;
     if (!storeId) {
@@ -90,14 +101,18 @@ export class VouchersController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get voucher by ID',
-    description: 'Retrieve a specific voucher by its ID. Requires authentication.',
+    description:
+      'Retrieve a specific voucher by its ID. Requires authentication.',
   })
   @ApiParam({ name: 'id', type: String, description: 'Voucher UUID' })
   @ApiResponse({
     status: 200,
     description: 'Voucher retrieved successfully',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Voucher not found' })
   async findOne(@Param('id') id: string, @Request() req) {
     const storeId = req.user?.storeId;
@@ -110,14 +125,18 @@ export class VouchersController {
   @Patch(':id')
   @ApiOperation({
     summary: 'Update voucher',
-    description: 'Update a voucher. Code cannot be changed after creation. Requires authentication.',
+    description:
+      'Update a voucher. Code cannot be changed after creation. Requires authentication.',
   })
   @ApiParam({ name: 'id', type: String, description: 'Voucher UUID' })
   @ApiResponse({
     status: 200,
     description: 'Voucher updated successfully',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Voucher not found' })
   @ApiResponse({ status: 400, description: 'Cannot change voucher code' })
   async update(
@@ -142,7 +161,10 @@ export class VouchersController {
     status: 200,
     description: 'Voucher deleted successfully',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Voucher not found' })
   async remove(@Param('id') id: string, @Request() req) {
     const storeId = req.user?.storeId;
@@ -162,7 +184,10 @@ export class VouchersController {
     status: 200,
     description: 'Voucher validation result',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async validate(@Body() dto: ValidateVoucherDto, @Request() req) {
     const storeId = req.user?.storeId;
     if (!storeId) {
