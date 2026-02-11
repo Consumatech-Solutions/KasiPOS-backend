@@ -60,7 +60,7 @@ export class AuthService {
 
     // Generate temporary token (short-lived, 10 minutes)
     const tempToken = this.jwtService.sign(
-      { sub: user.id, email: user.email, temp: true },
+      { sub: user.id, phone: user.phone, email: user.email, temp: true },
       { expiresIn: '10m' },
     );
 
@@ -71,6 +71,7 @@ export class AuthService {
       hasPassword,
       user: {
         id: user.id,
+        phone: user.phone,
         email: user.email,
         name: user.name,
         role: user.role,
@@ -110,11 +111,45 @@ export class AuthService {
     };
   }
 
-  async login(email: string, password: string): Promise<{ accessToken: string; user: User }> {
+  async loginByPhone(phone: string, password: string): Promise<{ accessToken: string; user: User }> {
+    const user = await this.usersService.findByPhone(phone);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Please set your password first');
+    }
+
+    const isPasswordValid = await user.validatePassword(password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const accessToken = this.generateAccessToken(user);
+
+    return {
+      accessToken,
+      user,
+    };
+  }
+
+  async adminLogin(email: string, password: string): Promise<{ accessToken: string; user: User }> {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Verify user is an admin
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Access denied. Admin access required.');
     }
 
     if (!user.isActive) {
@@ -151,6 +186,7 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       storeId: user.storeId,
     };

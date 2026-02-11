@@ -5,6 +5,7 @@ import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { LoginDto } from './dto/login.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -51,6 +52,7 @@ export class AuthController {
         hasPassword: false,
         user: {
           id: 'uuid-here',
+          phone: '0812345678',
           email: 'admin@kasipos.demo',
           name: 'John Doe',
           role: 'staff',
@@ -100,8 +102,8 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({
-    summary: 'Login with email and password',
-    description: 'Authenticate user with email and password. Returns JWT access token.'
+    summary: 'Login with phone and password',
+    description: 'Authenticate user with phone number and password. Returns JWT access token.'
   })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -112,7 +114,7 @@ export class AuthController {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         user: {
           id: 'uuid-here',
-          email: 'admin@kasipos.demo',
+          phone: '0812345678',
           name: 'John Doe',
           role: 'staff',
           storeId: 1,
@@ -125,7 +127,37 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials or user account is inactive' })
   async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto.email, loginDto.password);
+    return this.authService.loginByPhone(loginDto.phone, loginDto.password);
+  }
+
+  @Post('admin/login')
+  @ApiOperation({
+    summary: 'Admin login with email and password',
+    description: 'Authenticate admin user with email and password. Returns JWT access token. Only admin users can use this endpoint.'
+  })
+  @ApiBody({ type: AdminLoginDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Admin login successful',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          id: 'uuid-here',
+          email: 'admin@kasipos.demo',
+          name: 'System Administrator',
+          role: 'admin',
+          storeId: 1,
+          isActive: true,
+          createdAt: '2026-01-20T08:00:00.000Z',
+          updatedAt: '2026-01-20T08:00:00.000Z'
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Invalid credentials, user account is inactive, or access denied (non-admin user)' })
+  async adminLogin(@Body() adminLoginDto: AdminLoginDto) {
+    return this.authService.adminLogin(adminLoginDto.email, adminLoginDto.password);
   }
 
   @Get('profile')
