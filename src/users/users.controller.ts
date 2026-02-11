@@ -42,7 +42,7 @@ export class UsersController {
         data: [
           {
             id: 'uuid-here',
-            phone: '0812345678',
+            email: 'admin@kasipos.demo',
             name: 'John Doe',
             role: 'staff',
             storeId: 1,
@@ -81,7 +81,7 @@ export class UsersController {
     schema: {
       example: {
         id: 'uuid-here',
-        phone: '0812345678',
+        email: 'admin@kasipos.demo',
         name: 'John Doe',
         role: 'staff',
         storeId: 1,
@@ -109,7 +109,7 @@ export class UsersController {
     schema: {
       example: {
         id: 'uuid-here',
-        phone: '0812345678',
+        email: 'admin@kasipos.demo',
         name: 'John Doe',
         role: 'staff',
         storeId: 1,
@@ -140,7 +140,7 @@ export class UsersController {
     schema: {
       example: {
         id: 'uuid-here',
-        phone: '0812345678',
+        email: 'admin@kasipos.demo',
         name: 'John Doe Updated',
         role: 'admin',
         storeId: 1,

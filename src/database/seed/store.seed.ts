@@ -8,7 +8,7 @@ export async function seedStore(dataSource: DataSource): Promise<void> {
 
     // Find the admin user to be the owner
     const adminUser = await userRepository.findOne({
-        where: { phone: '0812345678' },
+        where: { email: 'admin@kasipos.demo' },
     });
 
     if (!adminUser) {

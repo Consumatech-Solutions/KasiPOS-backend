@@ -51,7 +51,7 @@ export class AuthController {
         hasPassword: false,
         user: {
           id: 'uuid-here',
-          phone: '0812345678',
+          email: 'admin@kasipos.demo',
           name: 'John Doe',
           role: 'staff',
           storeId: 1
@@ -81,7 +81,7 @@ export class AuthController {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         user: {
           id: 'uuid-here',
-          phone: '0812345678',
+          email: 'admin@kasipos.demo',
           name: 'John Doe',
           role: 'staff',
           storeId: 1,
@@ -100,8 +100,8 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({
-    summary: 'Login with phone and password',
-    description: 'Authenticate user with phone number and password. Returns JWT access token.'
+    summary: 'Login with email and password',
+    description: 'Authenticate user with email and password. Returns JWT access token.'
   })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -112,7 +112,7 @@ export class AuthController {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         user: {
           id: 'uuid-here',
-          phone: '0812345678',
+          email: 'admin@kasipos.demo',
           name: 'John Doe',
           role: 'staff',
           storeId: 1,
@@ -125,7 +125,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials or user account is inactive' })
   async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto.phone, loginDto.password);
+    return this.authService.login(loginDto.email, loginDto.password);
   }
 
   @Get('profile')
@@ -141,7 +141,7 @@ export class AuthController {
     schema: {
       example: {
         id: 'uuid-here',
-        phone: '0812345678',
+        email: 'admin@kasipos.demo',
         name: 'John Doe',
         role: 'staff',
         storeId: 1,
@@ -170,7 +170,7 @@ export class AuthController {
     schema: {
       example: {
         id: 'uuid-here',
-        phone: '0812345678',
+        email: 'admin@kasipos.demo',
         name: 'John Doe Updated',
         role: 'staff',
         storeId: 1,
