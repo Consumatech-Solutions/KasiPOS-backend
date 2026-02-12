@@ -33,6 +33,10 @@ import { MarketplaceStoresModule } from './marketplace-stores/marketplace-stores
 import { MarketplaceStore } from './marketplace-stores/entities/marketplace-store.entity';
 import { ParcelsModule } from './parcels/parcels.module';
 import { Parcel } from './parcels/entities/parcel.entity';
+import { ClientsModule } from './clients/clients.module';
+import { Client } from './clients/entities/client.entity';
+import { BrandsModule } from './brands/brands.module';
+import { Brand } from './brands/entities/brand.entity';
 
 @Module({
   imports: [
@@ -49,7 +53,7 @@ import { Parcel } from './parcels/entities/parcel.entity';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel],
+        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -70,6 +74,8 @@ import { Parcel } from './parcels/entities/parcel.entity';
     MarketplaceOrdersModule,
     MarketplaceStoresModule,
     ParcelsModule,
+    ClientsModule,
+    BrandsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

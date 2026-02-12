@@ -8,6 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
+import { Brand } from '../../../brands/entities/brand.entity';
 
 @Entity('products')
 export class Product {
@@ -41,6 +42,21 @@ export class Product {
 
   @Column({ name: 'low_stock_threshold', type: 'int', nullable: true, default: 0 })
   lowStockThreshold: number | null;
+
+  // New admin-only fields
+
+  @Column({ name: 'brand_id', nullable: true })
+  brandId: string;
+
+  @ManyToOne(() => Brand, { nullable: true })
+  @JoinColumn({ name: 'brand_id' })
+  brand: Brand;
+
+  @Column({ nullable: true })
+  supplier: string;
+
+  @Column({ name: 'unit_of_measure', nullable: true })
+  unitOfMeasure: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
