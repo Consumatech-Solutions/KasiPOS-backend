@@ -41,6 +41,8 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { AuditLog } from './audit-logs/entities/audit-log.entity';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interceptor';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { Campaign } from './campaigns/entities/campaign.entity';
 
 @Module({
   imports: [
@@ -57,7 +59,7 @@ import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interce
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog],
+        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -81,6 +83,7 @@ import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interce
     ClientsModule,
     BrandsModule,
     AuditLogsModule,
+    CampaignsModule,
   ],
   controllers: [AppController],
   providers: [
