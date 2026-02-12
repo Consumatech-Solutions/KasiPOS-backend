@@ -60,7 +60,7 @@ export class AuthService {
 
     // Generate temporary token (short-lived, 10 minutes)
     const tempToken = this.jwtService.sign(
-      { sub: user.id, phone: user.phone, temp: true },
+      { sub: user.id, phone: user.phone, email: user.email, temp: true },
       { expiresIn: '10m' },
     );
 
@@ -72,6 +72,7 @@ export class AuthService {
       user: {
         id: user.id,
         phone: user.phone,
+        email: user.email,
         name: user.name,
         role: user.role,
         storeId: user.storeId,
@@ -96,7 +97,10 @@ export class AuthService {
     } as any);
 
     // Fetch updated user
-    const updatedUser = await this.usersService.findByPhone(user.phone);
+    const updatedUser = await this.usersService.findById(userId);
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
 
     // Generate access token
     const accessToken = this.generateAccessToken(updatedUser);
@@ -107,13 +111,45 @@ export class AuthService {
     };
   }
 
-  async login(phone: string, password: string): Promise<{ accessToken: string; user: User }> {
+  async loginByPhone(phone: string, password: string): Promise<{ accessToken: string; user: User }> {
     const user = await this.usersService.findByPhone(phone);
-
-
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Please set your password first');
+    }
+
+    const isPasswordValid = await user.validatePassword(password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const accessToken = this.generateAccessToken(user);
+
+    return {
+      accessToken,
+      user,
+    };
+  }
+
+  async adminLogin(email: string, password: string): Promise<{ accessToken: string; user: User }> {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Verify user is an admin
+    if (user.role !== 'admin') {
+      throw new UnauthorizedException('Access denied. Admin access required.');
     }
 
     if (!user.isActive) {
@@ -149,6 +185,7 @@ export class AuthService {
   private generateAccessToken(user: User): string {
     const payload = {
       sub: user.id,
+      email: user.email,
       phone: user.phone,
       role: user.role,
       storeId: user.storeId,
