@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import { AdminCreateProductDto } from './admin-create-product.dto';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsInt } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AdminUpdateProductDto extends PartialType(AdminCreateProductDto) {
@@ -43,4 +43,12 @@ export class AdminUpdateProductDto extends PartialType(AdminCreateProductDto) {
   @IsNumber()
   @IsOptional()
   lowStockThreshold?: number;
+
+  @ApiPropertyOptional({
+    description: 'Store ID',
+    example: 1,
+  })
+  @IsInt()
+  @IsOptional()
+  storeId?: number;
 }

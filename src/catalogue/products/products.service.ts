@@ -9,6 +9,7 @@ import { AdminUpdateProductDto } from './dto/admin-update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
 import { Category } from '../categories/entities/category.entity';
 import { Brand } from '../../brands/entities/brand.entity';
+import { Store } from '../../stores/entities/store.entity';
 import { PaginationResult } from '../../common/dto/pagination.dto';
 import { ILike } from 'typeorm';
 
@@ -21,6 +22,8 @@ export class ProductsService {
     private categoriesRepository: Repository<Category>,
     @InjectRepository(Brand)
     private brandsRepository: Repository<Brand>,
+    @InjectRepository(Store)
+    private storesRepository: Repository<Store>,
   ) { }
 
   // ==================== Non-Admin Methods ====================
@@ -67,7 +70,7 @@ export class ProductsService {
 
     const [data, total] = await this.productsRepository.findAndCount({
       where: whereClause,
-      relations: ['category', 'brand'],
+      relations: ['category', 'brand', 'store'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -87,7 +90,7 @@ export class ProductsService {
   async findOne(id: string): Promise<Product> {
     const product = await this.productsRepository.findOne({
       where: { id },
-      relations: ['category', 'brand'],
+      relations: ['category', 'brand', 'store'],
     });
     if (!product) {
       throw new NotFoundException('Product not found');
@@ -170,7 +173,8 @@ export class ProductsService {
 
     const queryBuilder = this.productsRepository.createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
-      .leftJoinAndSelect('product.brand', 'brand');
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.store', 'store');
 
     if (search) {
       queryBuilder.andWhere(
@@ -228,6 +232,17 @@ export class ProductsService {
         throw new NotFoundException('Brand not found');
       }
       product.brand = brand;
+    }
+
+    // If storeId is being updated, verify the new store exists
+    if (adminUpdateProductDto.storeId && adminUpdateProductDto.storeId !== product.storeId) {
+      const store = await this.storesRepository.findOne({
+        where: { id: adminUpdateProductDto.storeId },
+      });
+      if (!store) {
+        throw new NotFoundException('Store not found');
+      }
+      product.store = store;
     }
 
     if (adminUpdateProductDto.name && adminUpdateProductDto.name !== product.name) {

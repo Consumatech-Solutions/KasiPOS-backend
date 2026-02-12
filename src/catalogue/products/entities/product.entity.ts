@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
 import { Brand } from '../../../brands/entities/brand.entity';
+import { Store } from '../../../stores/entities/store.entity';
 
 @Entity('products')
 export class Product {
@@ -57,6 +58,13 @@ export class Product {
 
   @Column({ name: 'unit_of_measure', nullable: true })
   unitOfMeasure: string;
+
+  @Column({ name: 'store_id', nullable: true })
+  storeId: number;
+
+  @ManyToOne(() => Store, { nullable: true })
+  @JoinColumn({ name: 'store_id' })
+  store: Store;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

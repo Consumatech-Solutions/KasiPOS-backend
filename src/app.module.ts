@@ -37,6 +37,10 @@ import { ClientsModule } from './clients/clients.module';
 import { Client } from './clients/entities/client.entity';
 import { BrandsModule } from './brands/brands.module';
 import { Brand } from './brands/entities/brand.entity';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { AuditLog } from './audit-logs/entities/audit-log.entity';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interceptor';
 
 @Module({
   imports: [
@@ -53,7 +57,7 @@ import { Brand } from './brands/entities/brand.entity';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand],
+        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -76,8 +80,15 @@ import { Brand } from './brands/entities/brand.entity';
     ParcelsModule,
     ClientsModule,
     BrandsModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    },
+  ],
 })
 export class AppModule { }
