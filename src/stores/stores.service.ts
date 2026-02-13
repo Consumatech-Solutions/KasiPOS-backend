@@ -93,7 +93,7 @@ export class StoresService {
         }
 
         queryBuilder
-            .orderBy('store.created_at', 'DESC')
+            .orderBy('store.createdAt', 'DESC')
             .skip((page - 1) * limit)
             .take(limit);
 

@@ -188,7 +188,7 @@ export class ProductsService {
     }
 
     queryBuilder
-      .orderBy('product.created_at', 'DESC')
+      .orderBy('product.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
