@@ -33,6 +33,16 @@ import { MarketplaceStoresModule } from './marketplace-stores/marketplace-stores
 import { MarketplaceStore } from './marketplace-stores/entities/marketplace-store.entity';
 import { ParcelsModule } from './parcels/parcels.module';
 import { Parcel } from './parcels/entities/parcel.entity';
+import { ClientsModule } from './clients/clients.module';
+import { Client } from './clients/entities/client.entity';
+import { BrandsModule } from './brands/brands.module';
+import { Brand } from './brands/entities/brand.entity';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { AuditLog } from './audit-logs/entities/audit-log.entity';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interceptor';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { Campaign } from './campaigns/entities/campaign.entity';
 
 @Module({
   imports: [
@@ -49,7 +59,7 @@ import { Parcel } from './parcels/entities/parcel.entity';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel],
+        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
@@ -70,8 +80,18 @@ import { Parcel } from './parcels/entities/parcel.entity';
     MarketplaceOrdersModule,
     MarketplaceStoresModule,
     ParcelsModule,
+    ClientsModule,
+    BrandsModule,
+    AuditLogsModule,
+    CampaignsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    },
+  ],
 })
 export class AppModule { }

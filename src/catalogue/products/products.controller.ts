@@ -20,8 +20,13 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { AdminCreateProductDto } from './dto/admin-create-product.dto';
+import { AdminUpdateProductDto } from './dto/admin-update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../users/entities/user.entity';
 
 @ApiTags('Products')
 @Controller('products')
@@ -30,9 +35,11 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 export class ProductsController {
   constructor(private productsService: ProductsService) {}
 
+  // ==================== Non-Admin Routes ====================
+
   @Post()
   @ApiOperation({
-    summary: 'Create a new product',
+    summary: 'Create a new product (for non-admin users)',
     description: 'Create a new product. Requires authentication.',
   })
   @ApiResponse({
@@ -105,11 +112,17 @@ export class ProductsController {
               id: 'category-uuid',
               name: 'Electronics',
             },
+            brand: {
+              id: 'brand-uuid',
+              name: 'Dell',
+            },
             price: 999.99,
             costPrice: 700.0,
             stock: 10,
             barCode: '1234567890123',
             productImage: 'https://example.com/image.jpg',
+            supplier: 'Tech Distributors',
+            unitOfMeasure: 'piece',
             createdAt: '2026-01-20T08:00:00.000Z',
             updatedAt: '2026-01-20T08:00:00.000Z',
           },
@@ -153,11 +166,17 @@ export class ProductsController {
           id: 'category-uuid',
           name: 'Electronics',
         },
+        brand: {
+          id: 'brand-uuid',
+          name: 'Dell',
+        },
         price: 999.99,
         costPrice: 700.0,
         stock: 10,
         barCode: '1234567890123',
         productImage: 'https://example.com/image.jpg',
+        supplier: 'Tech Distributors',
+        unitOfMeasure: 'piece',
         createdAt: '2026-01-20T08:00:00.000Z',
         updatedAt: '2026-01-20T08:00:00.000Z',
       },
@@ -174,7 +193,7 @@ export class ProductsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update product',
+    summary: 'Update product (for non-admin users)',
     description: 'Update product information. Requires authentication.',
   })
   @ApiParam({
@@ -241,6 +260,200 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: 'Product not found' })
   async remove(@Param('id') id: string) {
     await this.productsService.remove(id);
+    return { message: 'Product deleted successfully' };
+  }
+
+  // ==================== Admin-Only Routes ====================
+
+  @Post('admin')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Create a new product (admin only)',
+    description: 'Create a new product with admin fields like brand, supplier, and unit of measure. Requires admin role.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Product created successfully by admin',
+    schema: {
+      example: {
+        id: 'uuid-here',
+        name: 'Laptop Pro 15',
+        barCode: '1234567890123',
+        category: {
+          id: 'category-uuid',
+          name: 'Electronics',
+        },
+        brand: {
+          id: 'brand-uuid',
+          name: 'Dell',
+        },
+        supplier: 'Tech Distributors Ltd',
+        unitOfMeasure: 'piece',
+        price: 0,
+        costPrice: 0,
+        createdAt: '2026-01-20T08:00:00.000Z',
+        updatedAt: '2026-01-20T08:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'Category or Brand not found' })
+  @ApiResponse({ status: 409, description: 'Product with this name already exists' })
+  async adminCreate(@Body() adminCreateProductDto: AdminCreateProductDto) {
+    return this.productsService.adminCreate(adminCreateProductDto);
+  }
+
+  @Get('admin/list')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'List all products (admin only)',
+    description: 'Retrieve a paginated list of all products with full admin details. Requires admin role.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by product name, barcode, or supplier',
+  })
+  @ApiQuery({
+    name: 'categoryId',
+    required: false,
+    type: String,
+    description: 'Filter by category ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Products retrieved successfully',
+    schema: {
+      example: {
+        data: [
+          {
+            id: 'uuid-here',
+            name: 'Laptop Pro 15',
+            barCode: '1234567890123',
+            category: {
+              id: 'category-uuid',
+              name: 'Electronics',
+            },
+            brand: {
+              id: 'brand-uuid',
+              name: 'Dell',
+            },
+            supplier: 'Tech Distributors Ltd',
+            unitOfMeasure: 'piece',
+            price: 999.99,
+            costPrice: 700.0,
+            stock: 10,
+            createdAt: '2026-01-20T08:00:00.000Z',
+            updatedAt: '2026-01-20T08:00:00.000Z',
+          },
+        ],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  async adminFindAll(@Query() query: GetProductsDto) {
+    return this.productsService.adminFindAll(query);
+  }
+
+  @Get('admin/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Get product by ID (admin only)',
+    description: 'Retrieve a specific product with all admin fields. Requires admin role.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'Product UUID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async adminFindOne(@Param('id') id: string) {
+    return this.productsService.adminFindOne(id);
+  }
+
+  @Patch('admin/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Update product (admin only)',
+    description: 'Update product with admin fields. Requires admin role.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'Product UUID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'Product, Category, or Brand not found' })
+  @ApiResponse({ status: 409, description: 'Product with this name already exists' })
+  async adminUpdate(
+    @Param('id') id: string,
+    @Body() adminUpdateProductDto: AdminUpdateProductDto,
+  ) {
+    return this.productsService.adminUpdate(id, adminUpdateProductDto);
+  }
+
+  @Delete('admin/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Delete product (admin only)',
+    description: 'Delete a product by its ID. Requires admin role.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'Product UUID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product deleted successfully',
+    schema: {
+      example: {
+        message: 'Product deleted successfully',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async adminRemove(@Param('id') id: string) {
+    await this.productsService.adminRemove(id);
     return { message: 'Product deleted successfully' };
   }
 }
