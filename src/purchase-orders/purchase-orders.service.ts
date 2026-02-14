@@ -33,7 +33,7 @@ export class PurchaseOrdersService {
 
   async create(
     dto: CreatePurchaseOrderDto,
-    storeId: number,
+    storeId: string,
   ): Promise<PurchaseOrder> {
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException(
@@ -78,7 +78,7 @@ export class PurchaseOrdersService {
 
   async findAll(
     query: GetPurchaseOrdersDto,
-    storeId: number,
+    storeId: string,
   ): Promise<PaginationResult<PurchaseOrder>> {
     const { page = 1, limit = 10 } = query;
 
@@ -101,7 +101,7 @@ export class PurchaseOrdersService {
     };
   }
 
-  async findOne(id: string, storeId: number): Promise<PurchaseOrder> {
+  async findOne(id: string, storeId: string): Promise<PurchaseOrder> {
     const order = await this.purchaseOrdersRepository.findOne({
       where: { id, storeId },
       relations: ['store'],
@@ -117,7 +117,7 @@ export class PurchaseOrdersService {
   async updateStatus(
     id: string,
     dto: UpdatePurchaseOrderDto,
-    storeId: number,
+    storeId: string,
   ): Promise<PurchaseOrder> {
     const order = await this.findOne(id, storeId);
     const previousStatus = order.status;

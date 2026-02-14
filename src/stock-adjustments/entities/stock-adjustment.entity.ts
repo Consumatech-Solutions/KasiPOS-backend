@@ -53,7 +53,7 @@ export class StockAdjustment {
   store: Store;
 
   @Column({ name: 'store_id' })
-  storeId: number;
+  storeId: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

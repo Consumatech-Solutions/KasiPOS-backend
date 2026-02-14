@@ -19,5 +19,5 @@ export class CreateUserDto {
   role?: UserRole;
 
   @IsOptional()
-  storeId?: number;
+  storeId?: string;
 }

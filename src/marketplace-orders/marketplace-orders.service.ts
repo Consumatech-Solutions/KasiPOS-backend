@@ -29,7 +29,7 @@ export class MarketplaceOrdersService {
 
   async create(
     dto: CreateMarketplaceOrderDto,
-    storeId: number,
+    storeId: string,
   ): Promise<MarketplaceOrder> {
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException(
@@ -77,7 +77,7 @@ export class MarketplaceOrdersService {
 
   async findAll(
     query: GetMarketplaceOrdersDto,
-    storeId: number,
+    storeId: string,
   ): Promise<PaginationResult<MarketplaceOrder>> {
     const {
       page = 1,
@@ -129,7 +129,7 @@ export class MarketplaceOrdersService {
     };
   }
 
-  async findOne(id: string, storeId: number): Promise<MarketplaceOrder> {
+  async findOne(id: string, storeId: string): Promise<MarketplaceOrder> {
     const order = await this.marketplaceOrdersRepository.findOne({
       where: { id, storeId },
       relations: ['store'],
@@ -144,7 +144,7 @@ export class MarketplaceOrdersService {
 
   async findByOrderCode(
     orderCode: string,
-    storeId: number,
+    storeId: string,
   ): Promise<MarketplaceOrder> {
     const order = await this.marketplaceOrdersRepository.findOne({
       where: { orderCode, storeId },
@@ -163,7 +163,7 @@ export class MarketplaceOrdersService {
   async updateStatus(
     id: string,
     dto: UpdateMarketplaceOrderDto,
-    storeId: number,
+    storeId: string,
   ): Promise<MarketplaceOrder> {
     const order = await this.findOne(id, storeId);
 

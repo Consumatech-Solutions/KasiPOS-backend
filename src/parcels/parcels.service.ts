@@ -29,7 +29,7 @@ export class ParcelsService {
     return prefix + result;
   }
 
-  async create(dto: CreateParcelDto, storeId: number): Promise<Parcel> {
+  async create(dto: CreateParcelDto, storeId: string): Promise<Parcel> {
     const parcel = this.parcelsRepository.create({
       storeId,
       deliveryNumber: dto.deliveryNumber,
@@ -42,7 +42,7 @@ export class ParcelsService {
 
   async findAll(
     query: GetParcelsDto,
-    storeId: number,
+    storeId: string,
   ): Promise<PaginationResult<Parcel>> {
     const { page = 1, limit = 10, status, search } = query;
 
@@ -78,7 +78,7 @@ export class ParcelsService {
     };
   }
 
-  async findOne(id: string, storeId: number): Promise<Parcel> {
+  async findOne(id: string, storeId: string): Promise<Parcel> {
     const parcel = await this.parcelsRepository.findOne({
       where: { id, storeId },
     });
@@ -92,7 +92,7 @@ export class ParcelsService {
 
   async findByCollectionCode(
     collectionCode: string,
-    storeId: number,
+    storeId: string,
   ): Promise<Parcel> {
     const parcel = await this.parcelsRepository.findOne({
       where: { collectionCode, storeId },
@@ -110,7 +110,7 @@ export class ParcelsService {
   async receive(
     id: string,
     dto: ReceiveParcelDto,
-    storeId: number,
+    storeId: string,
   ): Promise<Parcel> {
     const parcel = await this.findOne(id, storeId);
 
@@ -131,7 +131,7 @@ export class ParcelsService {
   async collect(
     id: string,
     dto: CollectParcelDto,
-    storeId: number,
+    storeId: string,
   ): Promise<Parcel> {
     const parcel = await this.findOne(id, storeId);
 
@@ -155,7 +155,7 @@ export class ParcelsService {
   async update(
     id: string,
     dto: UpdateParcelDto,
-    storeId: number,
+    storeId: string,
   ): Promise<Parcel> {
     const parcel = await this.findOne(id, storeId);
 
@@ -202,7 +202,7 @@ export class ParcelsService {
     return this.parcelsRepository.save(parcel);
   }
 
-  async remove(id: string, storeId: number): Promise<void> {
+  async remove(id: string, storeId: string): Promise<void> {
     const parcel = await this.findOne(id, storeId);
 
     // Only allow deletion of incoming parcels

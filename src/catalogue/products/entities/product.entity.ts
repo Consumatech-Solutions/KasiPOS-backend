@@ -60,7 +60,7 @@ export class Product {
   unitOfMeasure: string;
 
   @Column({ name: 'store_id', nullable: true })
-  storeId: number;
+  storeId: string | null;
 
   @ManyToOne(() => Store, { nullable: true })
   @JoinColumn({ name: 'store_id' })

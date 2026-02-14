@@ -39,7 +39,7 @@ class CreateTransactionItemDto {
 export class CreateTransactionDto {
   @Type(() => Number)
   @IsInt()
-  storeId: number;
+  storeId: string;
 
   @IsOptional()
   @IsUUID()

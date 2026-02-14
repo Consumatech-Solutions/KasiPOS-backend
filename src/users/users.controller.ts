@@ -45,7 +45,7 @@ export class UsersController {
             email: 'admin@kasipos.demo',
             name: 'John Doe',
             role: 'staff',
-            storeId: 1,
+            storeId: 'uuid-here',
             isActive: true,
             createdAt: '2026-01-20T08:00:00.000Z',
             updatedAt: '2026-01-20T08:00:00.000Z'
@@ -61,7 +61,7 @@ export class UsersController {
     }
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  async findAll(@Query() paginationDto: PaginationDto, @Query('storeId') storeId?: number) {
+  async findAll(@Query() paginationDto: PaginationDto, @Query('storeId') storeId?: string) {
     return this.usersService.findAll(paginationDto.page, paginationDto.limit, storeId);
   }
 
@@ -84,7 +84,7 @@ export class UsersController {
         email: 'admin@kasipos.demo',
         name: 'John Doe',
         role: 'staff',
-        storeId: 1,
+        storeId: 'uuid-here',
         isActive: true,
         createdAt: '2026-01-20T08:00:00.000Z',
         updatedAt: '2026-01-20T08:00:00.000Z'
@@ -112,7 +112,7 @@ export class UsersController {
         email: 'admin@kasipos.demo',
         name: 'John Doe',
         role: 'staff',
-        storeId: 1,
+        storeId: 'uuid-here',
         isActive: true,
         createdAt: '2026-01-20T08:00:00.000Z',
         updatedAt: '2026-01-20T08:00:00.000Z'
@@ -143,7 +143,7 @@ export class UsersController {
         email: 'admin@kasipos.demo',
         name: 'John Doe Updated',
         role: 'admin',
-        storeId: 1,
+        storeId: 'uuid-here',
         isActive: true,
         createdAt: '2026-01-20T08:00:00.000Z',
         updatedAt: '2026-01-20T08:05:00.000Z'

@@ -58,6 +58,16 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  /** Create a user with an initial plain password (e.g. store admin). Entity will hash it on save. */
+  async createWithPassword(
+    dto: Omit<CreateUserDto, 'email'> & { email: string; password: string },
+  ): Promise<User> {
+    const { password, ...rest } = dto;
+    const user = this.usersRepository.create({ ...rest, passwordHash: password } as any);
+    const saved = await this.usersRepository.save(user);
+    return Array.isArray(saved) ? saved[0] : saved;
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
@@ -77,7 +87,7 @@ export class UsersService {
   async findAll(
     page: number = 1,
     limit: number = 10,
-    storeId?: number,
+    storeId?: string,
   ): Promise<PaginationResult<User>> {
     const [data, total] = await this.usersRepository.findAndCount({
       where: {

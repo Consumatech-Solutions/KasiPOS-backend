@@ -80,9 +80,10 @@ export class AdminCreateStoreDto {
     @IsOptional()
     vatNumber?: string;
 
-    @ApiProperty({ example: 'uuid-here', description: 'Owner user ID (must be an admin user)' })
+    @ApiPropertyOptional({ example: 'uuid-here', description: 'Owner user ID (must be an admin user). Omit to create store without owner; assign later via assign-store.' })
     @IsUUID()
-    ownerId: string;
+    @IsOptional()
+    ownerId?: string;
 
     @ApiPropertyOptional({ example: 'uuid-here', description: 'Client ID' })
     @IsUUID()
