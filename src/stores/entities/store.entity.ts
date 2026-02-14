@@ -82,6 +82,13 @@ export class Store {
     })
     initialStatus: StoreStatus;
 
+    @Column({
+        type: 'enum',
+        enum: StoreStatus,
+        default: StoreStatus.ACTIVE,
+    })
+    status: StoreStatus;
+
     @Column({ nullable: true })
     address: string;
 

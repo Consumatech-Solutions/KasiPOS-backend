@@ -43,6 +43,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interceptor';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { Campaign } from './campaigns/entities/campaign.entity';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { Campaign } from './campaigns/entities/campaign.entity';
     BrandsModule,
     AuditLogsModule,
     CampaignsModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [

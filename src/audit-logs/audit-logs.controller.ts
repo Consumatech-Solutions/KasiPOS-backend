@@ -4,6 +4,7 @@ import {
   Param,
   Query,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -80,21 +81,20 @@ export class AuditLogsController {
     return this.auditLogsService.findAll(query);
   }
 
-  @Get(':id')
+  @Get('recent')
   @ApiOperation({
-    summary: 'Get audit log by ID (admin only)',
-    description: 'Retrieve a specific audit log entry by its ID.',
+    summary: 'Get recent audit logs (admin only)',
+    description: 'Retrieve the most recent audit logs. Same as list with default limit.',
   })
-  @ApiParam({ name: 'id', type: String, description: 'Audit log UUID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Audit log retrieved successfully',
-  })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of recent logs (default: 50, max: 100)' })
+  @ApiResponse({ status: 200, description: 'Recent audit logs retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
-  @ApiResponse({ status: 404, description: 'Audit log not found' })
-  async findOne(@Param('id') id: string) {
-    return this.auditLogsService.findOne(id);
+  async findRecent(@Query('limit') limit?: number) {
+    return this.auditLogsService.findAll({
+      page: 1,
+      limit: Math.min(limit || 50, 100),
+    });
   }
 
   @Get('entity/:entity/:entityId')
@@ -135,5 +135,23 @@ export class AuditLogsController {
     @Query('limit') limit?: number,
   ) {
     return this.auditLogsService.findByUser(userId, limit || 50);
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get audit log by ID (admin only)',
+    description: 'Retrieve a specific audit log entry by its ID.',
+  })
+  @ApiParam({ name: 'id', type: String, description: 'Audit log UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Audit log retrieved successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid UUID format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'Audit log not found' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.auditLogsService.findOne(id);
   }
 }
