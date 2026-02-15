@@ -76,14 +76,18 @@ export class StoresService {
             if (!owner) {
                 throw new NotFoundException('Owner user not found');
             }
-            if (owner.role !== UserRole.ADMIN) {
-                throw new BadRequestException('Owner must be an admin user');
-            }
+            payload.ownerId = owner.id;
         } else {
             payload.ownerId = null;
         }
-        const store = this.storesRepository.create(payload);
-        return this.storesRepository.save(store);
+        const savedStore = await this.storesRepository.save(this.storesRepository.create(payload));
+        if (adminCreateStoreDto.ownerId) {
+            await this.usersService.update(adminCreateStoreDto.ownerId, {
+                storeId: savedStore.id,
+                role: UserRole.STORE_ADMIN,
+            });
+        }
+        return savedStore;
     }
 
     async adminFindAll(query: GetStoresDto): Promise<PaginationResult<Store>> {
