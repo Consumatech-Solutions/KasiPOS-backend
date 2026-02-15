@@ -90,7 +90,7 @@ export class TransactionsService {
 
   async findAll(
     query: GetTransactionsDto,
-    storeId: number,
+    storeId: string,
   ): Promise<PaginationResult<Transaction>> {
     const { page = 1, limit = 10, date, customerId, search } = query;
 
@@ -142,7 +142,7 @@ export class TransactionsService {
     };
   }
 
-  async findOne(id: string, storeId: number): Promise<Transaction> {
+  async findOne(id: string, storeId: string): Promise<Transaction> {
     const transaction = await this.transactionsRepository.findOne({
       where: { id, storeId },
     });

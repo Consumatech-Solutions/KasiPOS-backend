@@ -42,6 +42,7 @@ import { AuditLog } from './audit-logs/entities/audit-log.entity';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interceptor';
 import { CampaignsModule } from './campaigns/campaigns.module';
+import { ServicesModule } from './services/services.module';
 import { Campaign } from './campaigns/entities/campaign.entity';
 import { StatsModule } from './stats/stats.module';
 
@@ -68,6 +69,7 @@ import { StatsModule } from './stats/stats.module';
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
+    ServicesModule,
     AuthModule,
     UsersModule,
     CatalogueModule,

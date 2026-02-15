@@ -17,7 +17,7 @@ export class StockAdjustmentsService {
     private dataSource: DataSource,
   ) {}
 
-  async create(dto: CreateStockAdjustmentDto, storeId: number): Promise<StockAdjustment> {
+  async create(dto: CreateStockAdjustmentDto, storeId: string): Promise<StockAdjustment> {
     return this.dataSource.transaction(async (manager) => {
       // Get product with lock to prevent race conditions
       const product = await manager.getRepository(Product).findOne({
@@ -51,7 +51,7 @@ export class StockAdjustmentsService {
     });
   }
 
-  async findAll(query: GetStockAdjustmentsDto, storeId: number): Promise<PaginationResult<StockAdjustment>> {
+  async findAll(query: GetStockAdjustmentsDto, storeId: string): Promise<PaginationResult<StockAdjustment>> {
     const { page = 1, limit = 10, productId } = query;
 
     const where: any = { storeId };
@@ -78,7 +78,7 @@ export class StockAdjustmentsService {
     };
   }
 
-  async findByProduct(productId: string, storeId: number): Promise<StockAdjustment[]> {
+  async findByProduct(productId: string, storeId: string): Promise<StockAdjustment[]> {
     return this.stockAdjustmentsRepository.find({
       where: { productId, storeId },
       relations: ['product', 'store'],

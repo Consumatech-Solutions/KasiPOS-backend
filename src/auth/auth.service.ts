@@ -80,6 +80,31 @@ export class AuthService {
     };
   }
 
+  async setPasswordStoreAdmin(
+    phone: string,
+    temporaryPassword: string,
+    newPassword: string,
+  ): Promise<{ accessToken: string; user: User }> {
+    const user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.role !== 'store_admin') {
+      throw new UnauthorizedException('This endpoint is for store admins only');
+    }
+    const valid = await user.validatePassword(temporaryPassword);
+    if (!valid) {
+      throw new UnauthorizedException('Invalid temporary password');
+    }
+    await this.usersService.update(user.id, { password: newPassword } as any);
+    const updatedUser = await this.usersService.findById(user.id);
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+    const accessToken = this.generateAccessToken(updatedUser);
+    return { accessToken, user: updatedUser };
+  }
+
   async setPassword(
     userId: string,
     password: string,
@@ -191,6 +216,14 @@ export class AuthService {
       storeId: user.storeId,
     };
     return this.jwtService.sign(payload);
+  }
+
+  /** Short-lived JWT for store admin password reset link (e.g. 7 days). */
+  signStoreAdminResetToken(userId: string): string {
+    return this.jwtService.sign(
+      { sub: userId, storeAdminReset: true },
+      { expiresIn: '7d' },
+    );
   }
 
   async updateProfile(userId: string, data: { name?: string }): Promise<User> {

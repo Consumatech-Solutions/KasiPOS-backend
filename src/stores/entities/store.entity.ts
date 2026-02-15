@@ -38,8 +38,8 @@ export interface TradingHours {
 
 @Entity('stores')
 export class Store {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
     @Column()
     name: string;
@@ -59,8 +59,8 @@ export class Store {
     @Column({ name: 'is_setup_complete', default: false })
     isSetupComplete: boolean;
 
-    @Column({ name: 'owner_id' })
-    ownerId: string; // References User(id)
+    @Column({ name: 'owner_id', nullable: true })
+    ownerId: string | null; // References User(id); set when admin assigns store to store admin
 
     // New admin-only fields
 

@@ -12,6 +12,7 @@ import * as bcrypt from 'bcryptjs';
 export enum UserRole {
   ADMIN = 'admin',
   STAFF = 'staff',
+  STORE_ADMIN = 'store_admin',
 }
 
 @Entity('users')
@@ -39,7 +40,7 @@ export class User {
   role: UserRole;
 
   @Column({ name: 'store_id', nullable: true })
-  storeId: number;
+  storeId: string | null;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;

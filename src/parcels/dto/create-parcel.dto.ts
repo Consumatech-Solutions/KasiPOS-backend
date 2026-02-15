@@ -4,7 +4,7 @@ import { IsString, IsInt } from 'class-validator';
 export class CreateParcelDto {
   @Type(() => Number)
   @IsInt()
-  storeId: number;
+  storeId: string;
 
   @IsString()
   deliveryNumber: string;

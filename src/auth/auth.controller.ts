@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
+import { SetPasswordStoreAdminDto } from './dto/set-password-store-admin.dto';
 import { LoginDto } from './dto/login.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -56,7 +57,7 @@ export class AuthController {
           email: 'admin@kasipos.demo',
           name: 'John Doe',
           role: 'staff',
-          storeId: 1
+          storeId: 'uuid-here'
         }
       }
     }
@@ -86,7 +87,7 @@ export class AuthController {
           email: 'admin@kasipos.demo',
           name: 'John Doe',
           role: 'staff',
-          storeId: 1,
+          storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
           updatedAt: '2026-01-20T08:00:00.000Z'
@@ -98,6 +99,37 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async setPassword(@Request() req, @Body() setPasswordDto: SetPasswordDto) {
     return this.authService.setPassword(req.user.id, setPasswordDto.password);
+  }
+
+  @Post('set-password-store-admin')
+  @ApiOperation({
+    summary: 'Set password for store admin',
+    description: 'Store admin provides phone, temporary password (from SMS), and new password. Returns access token.'
+  })
+  @ApiBody({ type: SetPasswordStoreAdminDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Password set successfully',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          id: 'uuid-here',
+          email: 'storeadmin-1@kasipos.local',
+          name: 'John Doe',
+          role: 'store_admin',
+          storeId: 'uuid-here',
+          isActive: true,
+          createdAt: '2026-01-20T08:00:00.000Z',
+          updatedAt: '2026-01-20T08:00:00.000Z'
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Invalid temporary password or not a store admin' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async setPasswordStoreAdmin(@Body() dto: SetPasswordStoreAdminDto) {
+    return this.authService.setPasswordStoreAdmin(dto.phone, dto.temporaryPassword, dto.newPassword);
   }
 
   @Post('login')
@@ -117,7 +149,7 @@ export class AuthController {
           phone: '0812345678',
           name: 'John Doe',
           role: 'staff',
-          storeId: 1,
+          storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
           updatedAt: '2026-01-20T08:00:00.000Z'
@@ -147,7 +179,7 @@ export class AuthController {
           email: 'admin@kasipos.demo',
           name: 'System Administrator',
           role: 'admin',
-          storeId: 1,
+          storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
           updatedAt: '2026-01-20T08:00:00.000Z'
@@ -176,7 +208,7 @@ export class AuthController {
         email: 'admin@kasipos.demo',
         name: 'John Doe',
         role: 'staff',
-        storeId: 1,
+        storeId: 'uuid-here',
         isActive: true,
         createdAt: '2026-01-20T08:00:00.000Z',
         updatedAt: '2026-01-20T08:00:00.000Z'
@@ -205,7 +237,7 @@ export class AuthController {
         email: 'admin@kasipos.demo',
         name: 'John Doe Updated',
         role: 'staff',
-        storeId: 1,
+        storeId: 'uuid-here',
         isActive: true,
         createdAt: '2026-01-20T08:00:00.000Z',
         updatedAt: '2026-01-20T08:05:00.000Z'

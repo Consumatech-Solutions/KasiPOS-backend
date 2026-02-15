@@ -42,7 +42,7 @@ export class CreateMarketplaceOrderDto {
 
   @Type(() => Number)
   @IsInt()
-  storeId: number;
+  storeId: string;
 
   @IsOptional()
   @IsUUID()

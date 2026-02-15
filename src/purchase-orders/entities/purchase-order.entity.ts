@@ -42,7 +42,7 @@ export class PurchaseOrder {
   store: Store;
 
   @Column({ name: 'store_id' })
-  storeId: number;
+  storeId: string;
 
   @Column({ type: 'jsonb' })
   items: PurchaseOrderItem[];

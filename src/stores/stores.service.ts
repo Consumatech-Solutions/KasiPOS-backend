@@ -1,15 +1,20 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Store } from './entities/store.entity';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { AdminCreateStoreDto } from './dto/admin-create-store.dto';
 import { AdminUpdateStoreDto } from './dto/admin-update-store.dto';
 import { GetStoresDto } from './dto/get-stores.dto';
+import { AssignStoreDto } from './dto/assign-store.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../users/entities/user.entity';
+import { AuthService } from '../auth/auth.service';
+import { SmsService } from '../services/sms.service';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class StoresService {
@@ -17,6 +22,9 @@ export class StoresService {
         @InjectRepository(Store)
         private storesRepository: Repository<Store>,
         private usersService: UsersService,
+        private authService: AuthService,
+        private smsService: SmsService,
+        private configService: ConfigService,
     ) { }
 
     // ==================== Non-Admin Methods ====================
@@ -35,7 +43,7 @@ export class StoresService {
         return this.storesRepository.save(store);
     }
 
-    async findOne(id: number): Promise<Store> {
+    async findOne(id: string): Promise<Store> {
         const store = await this.storesRepository.findOne({ 
             where: { id },
             relations: ['client'],
@@ -53,7 +61,7 @@ export class StoresService {
         });
     }
 
-    async update(id: number, updateStoreDto: UpdateStoreDto): Promise<Store> {
+    async update(id: string, updateStoreDto: UpdateStoreDto): Promise<Store> {
         const store = await this.findOne(id);
         Object.assign(store, updateStoreDto);
         return this.storesRepository.save(store);
@@ -62,17 +70,24 @@ export class StoresService {
     // ==================== Admin-Only Methods ====================
 
     async adminCreate(adminCreateStoreDto: AdminCreateStoreDto): Promise<Store> {
-        // Verify owner exists and is an admin
-        const owner = await this.usersService.findById(adminCreateStoreDto.ownerId);
-        if (!owner) {
-            throw new NotFoundException('Owner user not found');
+        const payload: Partial<Store> = { ...adminCreateStoreDto };
+        if (adminCreateStoreDto.ownerId) {
+            const owner = await this.usersService.findById(adminCreateStoreDto.ownerId);
+            if (!owner) {
+                throw new NotFoundException('Owner user not found');
+            }
+            payload.ownerId = owner.id;
+        } else {
+            payload.ownerId = null;
         }
-        if (owner.role !== UserRole.ADMIN) {
-            throw new BadRequestException('Owner must be an admin user');
+        const savedStore = await this.storesRepository.save(this.storesRepository.create(payload));
+        if (adminCreateStoreDto.ownerId) {
+            await this.usersService.update(adminCreateStoreDto.ownerId, {
+                storeId: savedStore.id,
+                role: UserRole.STORE_ADMIN,
+            });
         }
-
-        const store = this.storesRepository.create(adminCreateStoreDto);
-        return this.storesRepository.save(store);
+        return savedStore;
     }
 
     async adminFindAll(query: GetStoresDto): Promise<PaginationResult<Store>> {
@@ -110,11 +125,11 @@ export class StoresService {
         };
     }
 
-    async adminFindOne(id: number): Promise<Store> {
+    async adminFindOne(id: string): Promise<Store> {
         return this.findOne(id);
     }
 
-    async adminUpdate(id: number, adminUpdateStoreDto: AdminUpdateStoreDto): Promise<Store> {
+    async adminUpdate(id: string, adminUpdateStoreDto: AdminUpdateStoreDto): Promise<Store> {
         const store = await this.findOne(id);
 
         // If ownerId is being updated, verify the new owner exists and is an admin
@@ -132,8 +147,41 @@ export class StoresService {
         return this.storesRepository.save(store);
     }
 
-    async adminRemove(id: number): Promise<void> {
+    async adminRemove(id: string): Promise<void> {
         const store = await this.findOne(id);
         await this.storesRepository.remove(store);
+    }
+
+    /** Admin: assign a store to a new store admin. Creates user, sets ownerId, sends SMS with temp password and reset link. */
+    async assignStore(dto: AssignStoreDto): Promise<{ user: { id: string; name: string; phone: string }; message: string }> {
+        const store = await this.findOne(dto.store);
+        if (store.ownerId) {
+            throw new BadRequestException('Store already has an owner. Unassign or use a different store.');
+        }
+        const existingUser = await this.usersService.findByPhone(dto.number);
+        if (existingUser) {
+            throw new BadRequestException('A user with this phone number already exists.');
+        }
+        const tempPassword = randomBytes(8).toString('base64').replace(/[+/=]/g, '').slice(0, 10);
+        const email = `storeadmin-${store.id}-${Date.now()}@kasipos.local`;
+        const user = await this.usersService.createWithPassword({
+            email,
+            name: dto.name,
+            phone: dto.number,
+            role: UserRole.STORE_ADMIN,
+            storeId: store.id,
+            password: tempPassword,
+        });
+        store.ownerId = user.id;
+        await this.storesRepository.save(store);
+        const resetToken = this.authService.signStoreAdminResetToken(user.id);
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:9002';
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+        const smsMessage = `KasiPOS: Your temporary password is ${tempPassword}. Phone: ${dto.number}. Set your password here: ${resetLink}`;
+        await this.smsService.send(dto.number, smsMessage);
+        return {
+            user: { id: user.id, name: user.name, phone: user.phone },
+            message: 'Store assigned. Store admin will receive an SMS with temporary password and reset link.',
+        };
     }
 }

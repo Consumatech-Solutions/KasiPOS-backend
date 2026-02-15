@@ -20,7 +20,7 @@ export class VouchersService {
     private vouchersRepository: Repository<Voucher>,
   ) {}
 
-  async create(dto: CreateVoucherDto, storeId: number): Promise<Voucher> {
+  async create(dto: CreateVoucherDto, storeId: string): Promise<Voucher> {
     // Check if code already exists for this store
     const existing = await this.vouchersRepository.findOne({
       where: { code: dto.code.toUpperCase(), storeId },
@@ -49,7 +49,7 @@ export class VouchersService {
     return this.vouchersRepository.save(voucher);
   }
 
-  async findAll(query: GetVouchersDto, storeId: number): Promise<PaginationResult<Voucher>> {
+  async findAll(query: GetVouchersDto, storeId: string): Promise<PaginationResult<Voucher>> {
     const { page = 1, limit = 10, isActive } = query;
 
     const where: any = { storeId };
@@ -76,7 +76,7 @@ export class VouchersService {
     };
   }
 
-  async findOne(id: string, storeId: number): Promise<Voucher> {
+  async findOne(id: string, storeId: string): Promise<Voucher> {
     const voucher = await this.vouchersRepository.findOne({
       where: { id, storeId },
       relations: ['store'],
@@ -89,7 +89,7 @@ export class VouchersService {
     return voucher;
   }
 
-  async update(id: string, dto: UpdateVoucherDto, storeId: number): Promise<Voucher> {
+  async update(id: string, dto: UpdateVoucherDto, storeId: string): Promise<Voucher> {
     const voucher = await this.findOne(id, storeId);
 
     // Don't allow code changes
@@ -137,14 +137,14 @@ export class VouchersService {
     return this.vouchersRepository.save(voucher);
   }
 
-  async remove(id: string, storeId: number): Promise<void> {
+  async remove(id: string, storeId: string): Promise<void> {
     const voucher = await this.findOne(id, storeId);
     await this.vouchersRepository.remove(voucher);
   }
 
   async validate(
     dto: ValidateVoucherDto,
-    storeId: number,
+    storeId: string,
   ): Promise<ValidateVoucherResponseDto> {
     const voucher = await this.vouchersRepository.findOne({
       where: { code: dto.code.toUpperCase(), storeId },
@@ -224,7 +224,7 @@ export class VouchersService {
     };
   }
 
-  async recordUsage(code: string, storeId: number, customerId?: string): Promise<void> {
+  async recordUsage(code: string, storeId: string, customerId?: string): Promise<void> {
     const voucher = await this.vouchersRepository.findOne({
       where: { code: code.toUpperCase(), storeId },
     });

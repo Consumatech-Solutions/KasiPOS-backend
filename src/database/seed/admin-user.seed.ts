@@ -37,7 +37,7 @@ export async function seedAdminUser(dataSource: DataSource): Promise<void> {
         name: 'System Administrator',
         role: UserRole.ADMIN,
         passwordHash: await bcrypt.hash('Admin@123', 10),
-        storeId: 1,
+        storeId: null,
         isActive: true,
     });
 

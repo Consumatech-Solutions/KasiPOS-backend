@@ -40,7 +40,7 @@ export class MarketplaceOrder {
   store: Store;
 
   @Column({ name: 'store_id' })
-  storeId: number; // The KasiPOS store placing the order
+  storeId: string; // The KasiPOS store placing the order
 
   @Column({ name: 'customer_id', type: 'uuid', nullable: true })
   customerId: string | null;

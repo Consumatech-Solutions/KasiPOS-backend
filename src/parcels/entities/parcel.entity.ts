@@ -25,7 +25,7 @@ export class Parcel {
   store: Store;
 
   @Column({ name: 'store_id' })
-  storeId: number;
+  storeId: string;
 
   @Column({ name: 'delivery_number' })
   deliveryNumber: string;

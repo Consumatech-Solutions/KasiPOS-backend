@@ -16,6 +16,7 @@ import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { AdminCreateStoreDto } from './dto/admin-create-store.dto';
 import { AdminUpdateStoreDto } from './dto/admin-update-store.dto';
+import { AssignStoreDto } from './dto/assign-store.dto';
 import { GetStoresDto } from './dto/get-stores.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -54,20 +55,20 @@ export class StoresController {
 
     @Get(':id')
     @ApiOperation({ summary: 'Get store by id' })
-    @ApiParam({ name: 'id', type: Number, description: 'Store ID' })
+    @ApiParam({ name: 'id', type: String, description: 'Store UUID' })
     @ApiResponse({ status: 200, description: 'Return the store.' })
     @ApiResponse({ status: 404, description: 'Store not found.' })
     findOne(@Param('id') id: string) {
-        return this.storesService.findOne(+id);
+        return this.storesService.findOne(id);
     }
 
     @Patch(':id')
     @ApiOperation({ summary: 'Update a store (for non-admin users)' })
-    @ApiParam({ name: 'id', type: Number, description: 'Store ID' })
+    @ApiParam({ name: 'id', type: String, description: 'Store UUID' })
     @ApiResponse({ status: 200, description: 'The store has been successfully updated.' })
     @ApiResponse({ status: 404, description: 'Store not found.' })
     update(@Param('id') id: string, @Body() updateStoreDto: UpdateStoreDto) {
-        return this.storesService.update(+id, updateStoreDto);
+        return this.storesService.update(id, updateStoreDto);
     }
 
     // ==================== Admin-Only Routes ====================
@@ -81,7 +82,7 @@ export class StoresController {
         description: 'The store has been successfully created by admin.',
         schema: {
             example: {
-                id: 1,
+                id: 'uuid-here',
                 name: 'My Store',
                 vatNumber: '123456789',
                 ownerId: 'uuid-here',
@@ -119,6 +120,19 @@ export class StoresController {
         return this.storesService.adminCreate(adminCreateStoreDto);
     }
 
+    @Post('admin/assign-store')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Assign a store to a new store admin (admin only)' })
+    @ApiResponse({ status: 201, description: 'Store assigned; store admin receives SMS with temporary password and reset link.' })
+    @ApiResponse({ status: 400, description: 'Store already has an owner or user with this phone exists.' })
+    @ApiResponse({ status: 401, description: 'Unauthorized.' })
+    @ApiResponse({ status: 403, description: 'Forbidden - Admin access required.' })
+    @ApiResponse({ status: 404, description: 'Store not found.' })
+    assignStore(@Body() assignStoreDto: AssignStoreDto) {
+        return this.storesService.assignStore(assignStoreDto);
+    }
+
     @Get('admin/list')
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
@@ -134,7 +148,7 @@ export class StoresController {
             example: {
                 data: [
                     {
-                        id: 1,
+                        id: 'uuid-here',
                         name: 'My Store',
                         vatNumber: '123456789',
                         ownerId: 'uuid-here',
@@ -177,40 +191,40 @@ export class StoresController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get store by id (admin only)' })
-    @ApiParam({ name: 'id', type: Number, description: 'Store ID' })
+    @ApiParam({ name: 'id', type: String, description: 'Store UUID' })
     @ApiResponse({ status: 200, description: 'Return the store with all admin fields.' })
     @ApiResponse({ status: 401, description: 'Unauthorized.' })
     @ApiResponse({ status: 403, description: 'Forbidden - Admin access required.' })
     @ApiResponse({ status: 404, description: 'Store not found.' })
     adminFindOne(@Param('id') id: string) {
-        return this.storesService.adminFindOne(+id);
+        return this.storesService.adminFindOne(id);
     }
 
     @Patch('admin/:id')
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Update a store (admin only)' })
-    @ApiParam({ name: 'id', type: Number, description: 'Store ID' })
+    @ApiParam({ name: 'id', type: String, description: 'Store UUID' })
     @ApiResponse({ status: 200, description: 'The store has been successfully updated.' })
     @ApiResponse({ status: 400, description: 'Owner must be an admin user.' })
     @ApiResponse({ status: 401, description: 'Unauthorized.' })
     @ApiResponse({ status: 403, description: 'Forbidden - Admin access required.' })
     @ApiResponse({ status: 404, description: 'Store or owner user not found.' })
     adminUpdate(@Param('id') id: string, @Body() adminUpdateStoreDto: AdminUpdateStoreDto) {
-        return this.storesService.adminUpdate(+id, adminUpdateStoreDto);
+        return this.storesService.adminUpdate(id, adminUpdateStoreDto);
     }
 
     @Delete('admin/:id')
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Delete a store (admin only)' })
-    @ApiParam({ name: 'id', type: Number, description: 'Store ID' })
+    @ApiParam({ name: 'id', type: String, description: 'Store UUID' })
     @ApiResponse({ status: 200, description: 'The store has been successfully deleted.' })
     @ApiResponse({ status: 401, description: 'Unauthorized.' })
     @ApiResponse({ status: 403, description: 'Forbidden - Admin access required.' })
     @ApiResponse({ status: 404, description: 'Store not found.' })
     async adminRemove(@Param('id') id: string) {
-        await this.storesService.adminRemove(+id);
+        await this.storesService.adminRemove(id);
         return { message: 'Store deleted successfully' };
     }
 }

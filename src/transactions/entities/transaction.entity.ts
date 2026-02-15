@@ -20,8 +20,8 @@ export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'store_id', type: 'int' })
-  storeId: number;
+  @Column({ name: 'store_id' })
+  storeId: string;
 
   @Column({ name: 'customer_id', type: 'uuid', nullable: true })
   customerId: string | null;
