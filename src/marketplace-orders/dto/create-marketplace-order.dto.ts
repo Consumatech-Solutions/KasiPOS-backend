@@ -40,8 +40,7 @@ export class CreateMarketplaceOrderDto {
   @IsString()
   marketplaceStoreId: string; // e.g., 'takealot', 'amazon', 'makro'
 
-  @Type(() => Number)
-  @IsInt()
+  @IsUUID()
   storeId: string;
 
   @IsOptional()
