@@ -1,9 +1,7 @@
-import { Type } from 'class-transformer';
-import { IsString, IsInt } from 'class-validator';
+import { IsString, IsUUID } from 'class-validator';
 
 export class CreateParcelDto {
-  @Type(() => Number)
-  @IsInt()
+  @IsUUID()
   storeId: string;
 
   @IsString()
