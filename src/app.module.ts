@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import jwtConfig from './config/jwt.config';
 import databaseConfig from './config/database.config';
 import otpConfig from './config/otp.config';
+import smsConfig from './config/sms.config';
 import s3Config from './config/s3.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -14,6 +15,7 @@ import { User } from './users/entities/user.entity';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { Category } from './catalogue/categories/entities/category.entity';
 import { Product } from './catalogue/products/entities/product.entity';
+import { ProductTemplate } from './catalogue/product-templates/entities/product-template.entity';
 import { FilesModule } from './files/files.module';
 import { StoresModule } from './stores/stores.module';
 import { Store } from './stores/entities/store.entity';
@@ -50,7 +52,7 @@ import { StatsModule } from './stats/stats.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, jwtConfig, otpConfig, s3Config],
+      load: [databaseConfig, jwtConfig, otpConfig, smsConfig, s3Config],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -61,7 +63,7 @@ import { StatsModule } from './stats/stats.module';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign],
+        entities: [User, Category, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         synchronize: false, // Always use migrations instead of synchronize
         logging: false, // Disable query logging
