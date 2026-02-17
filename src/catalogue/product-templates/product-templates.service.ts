@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, Not, In } from 'typeorm';
 import { ProductTemplate } from './entities/product-template.entity';
 import { Product } from '../products/entities/product.entity';
 import { Category } from '../categories/entities/category.entity';
@@ -74,19 +74,46 @@ export class ProductTemplatesService {
   async findAll(
     query: GetProductTemplatesDto,
   ): Promise<PaginationResult<ProductTemplate>> {
-    const { page = 1, limit = 10, search, categoryId } = query;
+    const { page = 1, limit = 10, search, categoryId, storeId } = query;
+
+    // If storeId is provided, find templates that are NOT already assigned to that store
+    let excludedTemplateIds: string[] = [];
+    if (storeId) {
+      const existingProducts = await this.productsRepository.find({
+        where: {
+          storeId: storeId,
+          templateId: Not(null),
+        },
+        select: ['templateId'],
+      });
+      excludedTemplateIds = existingProducts
+        .map((p) => p.templateId)
+        .filter((id): id is string => id !== null);
+    }
 
     const where: any = {};
     if (categoryId) {
       where.categoryId = categoryId;
     }
+    // Only add exclusion filter if we have templates to exclude
+    if (storeId && excludedTemplateIds.length > 0) {
+      where.id = Not(In(excludedTemplateIds));
+    }
 
     let whereClause: any = where;
     if (search) {
-      whereClause = [
-        { ...where, name: ILike(`%${search}%`) },
-        { ...where, barCode: ILike(`%${search}%`) },
-      ];
+      // When search is used with storeId filter, we need to apply the exclusion to both search conditions
+      if (storeId && excludedTemplateIds.length > 0) {
+        whereClause = [
+          { ...where, id: Not(In(excludedTemplateIds)), name: ILike(`%${search}%`) },
+          { ...where, id: Not(In(excludedTemplateIds)), barCode: ILike(`%${search}%`) },
+        ];
+      } else {
+        whereClause = [
+          { ...where, name: ILike(`%${search}%`) },
+          { ...where, barCode: ILike(`%${search}%`) },
+        ];
+      }
     }
 
     const [data, total] = await this.productTemplatesRepository.findAndCount({
@@ -234,6 +261,7 @@ export class ProductTemplatesService {
       brand,
       storeId: store.id,
       store,
+      templateId: templateId,
       price,
       costPrice,
       stock: dto.stock ?? template.stock ?? null,
@@ -297,6 +325,7 @@ export class ProductTemplatesService {
         brand,
         storeId: store.id,
         store,
+        templateId: templateId,
         price,
         costPrice,
         stock: dto.stock ?? template.stock ?? null,

@@ -37,13 +37,6 @@ export class ProductsService {
       throw new NotFoundException('Category not found');
     }
 
-    const existing = await this.productsRepository.findOne({
-      where: { name: createProductDto.name },
-    });
-    if (existing) {
-      throw new ConflictException(`A product with the name "${createProductDto.name}" already exists.`);
-    }
-
     const product = this.productsRepository.create({
       ...createProductDto,
       category,
@@ -142,28 +135,11 @@ export class ProductsService {
       throw new NotFoundException('Category not found');
     }
 
-    // Verify brand exists
-    const brand = await this.brandsRepository.findOne({
-      where: { id: adminCreateProductDto.brandId },
-    });
-    if (!brand) {
-      throw new NotFoundException('Brand not found');
-    }
-
-    const existing = await this.productsRepository.findOne({
-      where: { name: adminCreateProductDto.name },
-    });
-    if (existing) {
-      throw new ConflictException(`A product with the name "${adminCreateProductDto.name}" already exists.`);
-    }
-
     const product = this.productsRepository.create({
       ...adminCreateProductDto,
       category,
-      brand,
+      brandId: adminCreateProductDto.brandId,
       // Set default values for non-admin fields
-      price: 0,
-      costPrice: 0,
     });
     return this.productsRepository.save(product);
   }

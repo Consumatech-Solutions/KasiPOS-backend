@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
@@ -16,4 +16,11 @@ export class GetProductTemplatesDto extends PaginationDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter templates not yet assigned to this store ID',
+  })
+  @IsOptional()
+  @IsUUID()
+  storeId?: string;
 }

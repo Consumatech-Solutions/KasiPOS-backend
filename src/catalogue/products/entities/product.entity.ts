@@ -10,6 +10,7 @@ import {
 import { Category } from '../../categories/entities/category.entity';
 import { Brand } from '../../../brands/entities/brand.entity';
 import { Store } from '../../../stores/entities/store.entity';
+import { ProductTemplate } from '../../product-templates/entities/product-template.entity';
 
 @Entity('products')
 export class Product {
@@ -65,6 +66,13 @@ export class Product {
   @ManyToOne(() => Store, { nullable: true })
   @JoinColumn({ name: 'store_id' })
   store: Store;
+
+  @Column({ name: 'template_id', nullable: true })
+  templateId: string | null;
+
+  @ManyToOne(() => ProductTemplate, { nullable: true })
+  @JoinColumn({ name: 'template_id' })
+  template: ProductTemplate | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
