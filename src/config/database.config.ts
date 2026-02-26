@@ -2,6 +2,7 @@ import { registerAs } from '@nestjs/config';
 
 export default registerAs('database', () => {
   const useUrl = process.env.NODE_ENV === 'production' && process.env.DATABASE_URL;
+  console.log('useUrl', useUrl);
 
   return {
     type: 'postgres',
@@ -19,6 +20,7 @@ export default registerAs('database', () => {
     logging: process.env.NODE_ENV === 'development',
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
     migrationsRun: false,
+
   };
 });
 
