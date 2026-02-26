@@ -56,18 +56,25 @@ import { StatsModule } from './stats/stats.module';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        username: configService.get<string>('database.username'),
-        password: configService.get<string>('database.password'),
-        database: configService.get<string>('database.database'),
-        entities: [User, Category, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign],
-        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-        synchronize: false, // Always use migrations instead of synchronize
-        logging: false, // Disable query logging
-      }),
+      useFactory: (configService: ConfigService) => {
+        const url = configService.get<string>('database.url');
+        return {
+          type: 'postgres',
+          ...(url
+            ? { url }
+            : {
+                host: configService.get<string>('database.host'),
+                port: configService.get<number>('database.port'),
+                username: configService.get<string>('database.username'),
+                password: configService.get<string>('database.password'),
+                database: configService.get<string>('database.database'),
+              }),
+          entities: [User, Category, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign],
+          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+          synchronize: false, // Always use migrations instead of synchronize
+          logging: false, // Disable query logging
+        };
+      },
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
