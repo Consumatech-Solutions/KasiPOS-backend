@@ -174,9 +174,12 @@ export class StoresService {
         });
         store.ownerId = user.id;
         await this.storesRepository.save(store);
-        const resetToken = this.authService.signStoreAdminResetToken(user.id);
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:9002';
-        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+        const resetToken = await this.authService.createStoreAdminResetToken(user.id);
+        // Store admins are normal users: use the normal user app (first URL in FRONTEND_URL)
+        const userAppUrl =
+            this.configService.get<string>('FRONTEND_URL')?.split(',')[0]?.trim() ||
+            'http://localhost:9002';
+        const resetLink = `${userAppUrl}/reset-password?token=${resetToken}`;
         const smsMessage = `KasiPOS: Your temporary password is ${tempPassword}. Phone: ${dto.number}. Set your password here: ${resetLink}`;
         await this.smsService.send(dto.number, smsMessage);
         return {
