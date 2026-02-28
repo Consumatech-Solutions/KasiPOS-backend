@@ -5,17 +5,26 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { randomBytes } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { OtpService } from '../services/otp.service';
 import { User } from '../users/entities/user.entity';
+import { StoreAdminResetToken } from './entities/store-admin-reset-token.entity';
 
 @Injectable()
 export class AuthService {
+  private static readonly RESET_TOKEN_EXPIRY_DAYS = 7;
+  private static readonly SHORT_TOKEN_BYTES = 8; // 16 hex chars
+
   constructor(
     private usersService: UsersService,
     private otpService: OtpService,
     private jwtService: JwtService,
-  ) { }
+    @InjectRepository(StoreAdminResetToken)
+    private storeAdminResetTokenRepository: Repository<StoreAdminResetToken>,
+  ) {}
 
   async requestOtp(phone: string): Promise<{ success: boolean; message: string }> {
     // Check if user exists
@@ -84,7 +93,11 @@ export class AuthService {
     phone: string,
     temporaryPassword: string,
     newPassword: string,
+    resetToken?: string,
   ): Promise<{ accessToken: string; user: User }> {
+    if (resetToken) {
+      return this.setPasswordWithResetToken(resetToken, newPassword);
+    }
     const user = await this.usersService.findByPhone(phone);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -97,6 +110,36 @@ export class AuthService {
       throw new UnauthorizedException('Invalid temporary password');
     }
     await this.usersService.update(user.id, { password: newPassword } as any);
+    const updatedUser = await this.usersService.findById(user.id);
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+    const accessToken = this.generateAccessToken(updatedUser);
+    return { accessToken, user: updatedUser };
+  }
+
+  /** Set password using short reset token from SMS link. Invalidates token after use. */
+  async setPasswordWithResetToken(
+    token: string,
+    newPassword: string,
+  ): Promise<{ accessToken: string; user: User }> {
+    const record = await this.storeAdminResetTokenRepository.findOne({
+      where: { token: token.trim() },
+      relations: ['user'],
+    });
+    if (!record) {
+      throw new UnauthorizedException('Invalid or expired reset link');
+    }
+    if (new Date() > record.expiresAt) {
+      await this.storeAdminResetTokenRepository.remove(record);
+      throw new UnauthorizedException('Reset link has expired');
+    }
+    const user = record.user;
+    if (user.role !== 'store_admin') {
+      throw new UnauthorizedException('This endpoint is for store admins only');
+    }
+    await this.usersService.update(user.id, { password: newPassword } as any);
+    await this.storeAdminResetTokenRepository.remove(record);
     const updatedUser = await this.usersService.findById(user.id);
     if (!updatedUser) {
       throw new NotFoundException('User not found');
@@ -218,12 +261,20 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  /** Short-lived JWT for store admin password reset link (e.g. 7 days). */
-  signStoreAdminResetToken(userId: string): string {
-    return this.jwtService.sign(
-      { sub: userId, storeAdminReset: true },
-      { expiresIn: '7d' },
-    );
+  /**
+   * Create a short-lived reset token for store admin (stored in DB).
+   * Use this for SMS links so the URL stays short.
+   */
+  async createStoreAdminResetToken(userId: string): Promise<string> {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + AuthService.RESET_TOKEN_EXPIRY_DAYS);
+    const token = randomBytes(AuthService.SHORT_TOKEN_BYTES).toString('hex');
+    await this.storeAdminResetTokenRepository.save({
+      userId,
+      token,
+      expiresAt,
+    });
+    return token;
   }
 
   async updateProfile(userId: string, data: { name?: string }): Promise<User> {
