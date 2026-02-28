@@ -176,7 +176,7 @@ export class StoresService {
         store.ownerId = user.id;
         await this.storesRepository.save(store);
         const resetToken = this.authService.signStoreAdminResetToken(user.id);
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:9002';
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL_SMS') || 'http://localhost:9002';
         const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
         const smsMessage = `KasiPOS: Your temporary password is ${tempPassword}. Phone: ${dto.number}. Set your password here: ${resetLink}`;
         await this.smsService.send(dto.number, smsMessage);
