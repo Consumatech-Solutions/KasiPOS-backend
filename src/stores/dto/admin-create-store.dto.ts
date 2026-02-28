@@ -21,11 +21,11 @@ class EnabledModulesDto {
     campaigns: boolean;
 
     @ApiProperty({ example: false, description: 'Enable buy stock module' })
-    @IsBoolean()
+    @IsOptional()
     buyStock: boolean;
 
     @ApiProperty({ example: false, description: 'Enable show VAT in checkout module' })
-    @IsBoolean()
+    @IsOptional()
     showVatInCheckout: boolean;
 }
 
