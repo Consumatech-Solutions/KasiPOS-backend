@@ -10,6 +10,7 @@ import otpConfig from './config/otp.config';
 import smsConfig from './config/sms.config';
 import s3Config from './config/s3.config';
 import { AuthModule } from './auth/auth.module';
+import { StoreAdminResetToken } from './auth/entities/store-admin-reset-token.entity';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { CatalogueModule } from './catalogue/catalogue.module';
@@ -69,7 +70,7 @@ import { StatsModule } from './stats/stats.module';
                 password: configService.get<string>('database.password'),
                 database: configService.get<string>('database.database'),
               }),
-          entities: [User, Category, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign],
+          entities: [User, Category, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
           logging: false, // Disable query logging

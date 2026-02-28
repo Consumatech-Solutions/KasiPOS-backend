@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Patch, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RequestOtpDto } from './dto/request-otp.dto';
@@ -129,6 +129,12 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid temporary password or not a store admin' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async setPasswordStoreAdmin(@Body() dto: SetPasswordStoreAdminDto) {
+    if (dto.token) {
+      return this.authService.setPasswordStoreAdmin('', '', dto.newPassword, dto.token);
+    }
+    if (!dto.phone || !dto.temporaryPassword) {
+      throw new BadRequestException('Provide either token (from reset link) or phone + temporaryPassword');
+    }
     return this.authService.setPasswordStoreAdmin(dto.phone, dto.temporaryPassword, dto.newPassword);
   }
 
