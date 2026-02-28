@@ -1,5 +1,6 @@
 import { IsString, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { EnabledModules } from '../entities/store.entity';
 
 export class CreateStoreDto {
     @ApiProperty({ example: 'My Awesome Store', description: 'Store name' })
@@ -20,6 +21,10 @@ export class CreateStoreDto {
     @IsString()
     @IsOptional()
     receiptFooter?: string;
+
+    @ApiProperty({ example: '0712345678', description: 'Store contact number', required: false })
+    @IsOptional()
+    enabledModules?: EnabledModules;
 
     // ownerId is taken from the logged-in user
 }

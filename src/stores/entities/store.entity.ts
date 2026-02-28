@@ -19,6 +19,8 @@ export interface EnabledModules {
     marketplace: boolean;
     boph: boolean;
     campaigns: boolean;
+    buyStock: boolean;
+    showVatInCheckout: boolean;
 }
 
 export interface TradingHourSlot {

@@ -63,8 +63,8 @@ export class StoresService {
 
     async update(id: string, updateStoreDto: UpdateStoreDto): Promise<Store> {
         const store = await this.findOne(id);
-        Object.assign(store, updateStoreDto);
-        return this.storesRepository.save(store);
+        await this.storesRepository.update(id, updateStoreDto);
+        return this.findOne(id);
     }
 
     // ==================== Admin-Only Methods ====================
@@ -144,6 +144,7 @@ export class StoresService {
         }
 
         Object.assign(store, adminUpdateStoreDto);
+        console.log(store);
         return this.storesRepository.save(store);
     }
 

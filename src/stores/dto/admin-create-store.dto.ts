@@ -19,6 +19,14 @@ class EnabledModulesDto {
     @ApiProperty({ example: false, description: 'Enable campaigns module' })
     @IsBoolean()
     campaigns: boolean;
+
+    @ApiProperty({ example: false, description: 'Enable buy stock module' })
+    @IsBoolean()
+    buyStock: boolean;
+
+    @ApiProperty({ example: false, description: 'Enable show VAT in checkout module' })
+    @IsBoolean()
+    showVatInCheckout: boolean;
 }
 
 class TradingHourSlotDto {
