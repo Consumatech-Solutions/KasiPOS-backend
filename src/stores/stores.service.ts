@@ -180,7 +180,7 @@ export class StoresService {
         const userAppUrl =
             this.configService.get<string>('FRONTEND_URL_SMS')?.split(',')[0]?.trim() ||
             'http://localhost:9002';
-        const resetLink = `${userAppUrl}/reset-password?token=${resetToken}`;
+        const resetLink = `${userAppUrl}/set-password-store-admin?token=${resetToken}`;
         const smsMessage = `KasiPOS: Your temporary password is ${tempPassword}. Phone: ${dto.number}. Set your password here: ${resetLink}`;
         await this.smsService.send(dto.number, smsMessage);
         return {
