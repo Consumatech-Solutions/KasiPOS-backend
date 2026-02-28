@@ -182,6 +182,7 @@ export class StoresService {
             'http://localhost:9002';
         const resetLink = `${userAppUrl}/set-password-store-admin?token=${resetToken}`;
         const smsMessage = `KasiPOS: Your temporary password is ${tempPassword}. Phone: ${dto.number}. Set your password here: ${resetLink}`;
+        console.log(smsMessage);
         await this.smsService.send(dto.number, smsMessage);
         return {
             user: { id: user.id, name: user.name, phone: user.phone },
