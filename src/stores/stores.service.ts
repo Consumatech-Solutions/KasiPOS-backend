@@ -156,9 +156,9 @@ export class StoresService {
     /** Admin: assign a store to a new store admin. Creates user, sets ownerId, sends SMS with temp password and reset link. */
     async assignStore(dto: AssignStoreDto): Promise<{ user: { id: string; name: string; phone: string }; message: string }> {
         const store = await this.findOne(dto.store);
-        if (store.ownerId) {
-            throw new BadRequestException('Store already has an owner. Unassign or use a different store.');
-        }
+        // if (store.ownerId) {
+        //     throw new BadRequestException('Store already has an owner. Unassign or use a different store.');
+        // }
         const existingUser = await this.usersService.findByPhone(dto.number);
         if (existingUser) {
             throw new BadRequestException('A user with this phone number already exists.');
