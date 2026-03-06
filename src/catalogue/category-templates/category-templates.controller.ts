@@ -49,13 +49,13 @@ export class CategoryTemplatesController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'List category templates (admin)' })
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
+  @ApiOperation({ summary: 'List category templates (admin or store admin)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Category templates list' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
   async findAll(@Query() query: PaginationDto) {
     return this.categoryTemplatesService.findAll(
       query.page,
@@ -65,12 +65,12 @@ export class CategoryTemplatesController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get category template by ID (admin)' })
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
+  @ApiOperation({ summary: 'Get category template by ID (admin or store admin)' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Category template' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
   @ApiResponse({ status: 404, description: 'Category template not found' })
   async findOne(@Param('id') id: string) {
     return this.categoryTemplatesService.findOne(id);

@@ -57,12 +57,15 @@ export class AddStoreToCategoriesAndDuplicateForStores1770990000000
     }
 
     // 5. Update products: set category_id to the category in the same store with the same name
+    // (Cannot reference update target "p" in FROM/JOIN; use FROM c1, c2 and put p in WHERE.)
     await queryRunner.query(`
       UPDATE "products" p
       SET "category_id" = c2.id
-      FROM "categories" c1
-      JOIN "categories" c2 ON c2.name = c1.name AND c2.store_id = p.store_id
-      WHERE p.category_id = c1.id AND p.store_id IS NOT NULL
+      FROM "categories" c1, "categories" c2
+      WHERE p.category_id = c1.id
+        AND c2.name = c1.name
+        AND c2.store_id = p.store_id
+        AND p.store_id IS NOT NULL
     `);
 
     // 6. Make store_id NOT NULL
