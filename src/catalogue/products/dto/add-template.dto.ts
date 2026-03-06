@@ -1,11 +1,13 @@
-import { IsArray, IsOptional, IsUUID, ArrayMinSize, ValidateNested } from 'class-validator';
+
+import { IsArray, IsOptional, IsString, IsNotEmpty, IsUUID, ArrayMinSize, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AddTemplateCategoryItemDto {
-  @ApiProperty({ description: 'Category ID', example: 'uuid-here' })
-  @IsUUID()
-  categoryId: string;
+  @ApiProperty({ description: 'Category name (template category); will be created if not found', example: 'Electronics' })
+  @IsString()
+  @IsNotEmpty()
+  categoryName: string;
 
   @ApiProperty({
     description: 'Product template IDs to add as products in this category',
@@ -31,8 +33,8 @@ export class AddTemplateDto {
     description: 'Array of categories, each with product templates to add to the store',
     type: [AddTemplateCategoryItemDto],
     example: [
-      { categoryId: 'cat-uuid-1', productTemplateIds: ['tpl-uuid-1', 'tpl-uuid-2'] },
-      { categoryId: 'cat-uuid-2', productTemplateIds: ['tpl-uuid-3'] },
+      { categoryName: 'Electronics', productTemplateIds: ['tpl-uuid-1', 'tpl-uuid-2'] },
+      { categoryName: 'Groceries', productTemplateIds: ['tpl-uuid-3'] },
     ],
   })
   @IsArray()

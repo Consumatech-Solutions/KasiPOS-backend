@@ -246,9 +246,9 @@ export class ProductsService {
   // ==================== Store Admin: Add templates to own store ====================
 
   /**
-   * Add products from product templates to the store admin's store.
-   * Each item has a categoryId and an array of product template IDs; for each template
-   * a product is created with that category in the given store.
+   * Add categories and products from templates to the store admin's store.
+   * For each item: find a category by name, or create it if not found; then create
+   * products from the given template IDs in that category.
    */
   async addTemplates(storeId: string, dto: AddTemplateDto): Promise<Product[]> {
     const store = await this.storesRepository.findOne({ where: { id: storeId } });
@@ -258,11 +258,13 @@ export class ProductsService {
 
     const created: Product[] = [];
     for (const item of dto.items) {
-      const category = await this.categoriesRepository.findOne({
-        where: { id: item.categoryId },
+      const categoryName = item.categoryName.trim();
+      let category = await this.categoriesRepository.findOne({
+        where: { name: categoryName },
       });
       if (!category) {
-        throw new NotFoundException(`Category not found: ${item.categoryId}`);
+        category = this.categoriesRepository.create({ name: categoryName });
+        category = await this.categoriesRepository.save(category);
       }
 
       for (const templateId of item.productTemplateIds) {

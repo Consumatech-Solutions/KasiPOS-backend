@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -54,8 +55,6 @@ export class ProductTemplatesController {
   }
 
   @Get()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'List product templates',
     description: 'Paginated list of product templates with optional search and category filter.',
@@ -72,9 +71,22 @@ export class ProductTemplatesController {
     return this.productTemplatesService.findAll(query);
   }
 
+  @Get('for-store')
+  @ApiOperation({
+    summary: 'List product templates for store (Store Admin)',
+    description:
+      'Returns all product templates with category and brand, for the Add Templates flow. Optionally excludes templates already assigned to the authenticated store admin\'s store.',
+  })
+  @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Store Admin required' })
+  async findAllForStore(@Request() req: any) {
+    const storeId = req.user?.storeId;
+    return this.productTemplatesService.findAllForStore(storeId);
+  }
+
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get a product template by ID',
   })

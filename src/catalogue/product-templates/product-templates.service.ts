@@ -135,6 +135,35 @@ export class ProductTemplatesService {
     };
   }
 
+  /**
+   * List all product templates for Store Admin (Add Templates flow).
+   * Returns full list with category and brand relations; optionally excludes
+   * templates already assigned to the given store.
+   */
+  async findAllForStore(storeId?: string): Promise<ProductTemplate[]> {
+    let where: any = {};
+    if (storeId) {
+      const existingProducts = await this.productsRepository.find({
+        where: {
+          storeId,
+          templateId: Not(null),
+        },
+        select: ['templateId'],
+      });
+      const excludedTemplateIds = existingProducts
+        .map((p) => p.templateId)
+        .filter((id): id is string => id !== null);
+      if (excludedTemplateIds.length > 0) {
+        where.id = Not(In(excludedTemplateIds));
+      }
+    }
+    return this.productTemplatesRepository.find({
+      where,
+      relations: ['category', 'brand'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async findOne(id: string): Promise<ProductTemplate> {
     const template = await this.productTemplatesRepository.findOne({
       where: { id },
