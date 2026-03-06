@@ -48,6 +48,8 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { ServicesModule } from './services/services.module';
 import { Campaign } from './campaigns/entities/campaign.entity';
 import { StatsModule } from './stats/stats.module';
+import { SettingsModule } from './settings/settings.module';
+import { StoreSettings } from './settings/entities/store-settings.entity';
 
 @Module({
   imports: [
@@ -70,7 +72,7 @@ import { StatsModule } from './stats/stats.module';
                 password: configService.get<string>('database.password'),
                 database: configService.get<string>('database.database'),
               }),
-          entities: [User, Category, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken],
+          entities: [User, Category, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
           logging: false, // Disable query logging
@@ -98,6 +100,7 @@ import { StatsModule } from './stats/stats.module';
     AuditLogsModule,
     CampaignsModule,
     StatsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [
