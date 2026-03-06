@@ -57,12 +57,12 @@ export class ProductTemplatesController {
   @Get()
   @ApiOperation({
     summary: 'List product templates',
-    description: 'Paginated list of product templates with optional search and category filter.',
+    description: 'Paginated list of product templates with optional search and category template filter.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'categoryId', required: false, type: String })
+  @ApiQuery({ name: 'categoryTemplateId', required: false, type: String })
   @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Filter templates not yet assigned to this store' })
   @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -75,7 +75,7 @@ export class ProductTemplatesController {
   @ApiOperation({
     summary: 'List product templates for store (Store Admin)',
     description:
-      'Returns all product templates with category and brand, for the Add Templates flow. Optionally excludes templates already assigned to the authenticated store admin\'s store.',
+      'Returns all product templates with category template and brand, for the Add Templates flow. Optionally excludes templates already assigned to the authenticated store admin\'s store.',
   })
   @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

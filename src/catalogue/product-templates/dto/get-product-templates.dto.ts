@@ -11,11 +11,11 @@ export class GetProductTemplatesDto extends PaginationDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by category ID',
+    description: 'Filter by category template ID',
   })
   @IsOptional()
-  @IsString()
-  categoryId?: string;
+  @IsUUID()
+  categoryTemplateId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter templates not yet assigned to this store ID',

@@ -9,6 +9,7 @@ import { Repository, ILike, Not, In } from 'typeorm';
 import { ProductTemplate } from './entities/product-template.entity';
 import { Product } from '../products/entities/product.entity';
 import { Category } from '../categories/entities/category.entity';
+import { CategoryTemplate } from '../category-templates/entities/category-template.entity';
 import { Brand } from '../../brands/entities/brand.entity';
 import { Store } from '../../stores/entities/store.entity';
 import { CreateProductTemplateDto } from './dto/create-product-template.dto';
@@ -27,6 +28,8 @@ export class ProductTemplatesService {
     private productsRepository: Repository<Product>,
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
+    @InjectRepository(CategoryTemplate)
+    private categoryTemplatesRepository: Repository<CategoryTemplate>,
     @InjectRepository(Brand)
     private brandsRepository: Repository<Brand>,
     @InjectRepository(Store)
@@ -43,13 +46,13 @@ export class ProductTemplatesService {
       );
     }
 
-    let category: Category | null = null;
-    if (dto.categoryId) {
-      category = await this.categoriesRepository.findOne({
-        where: { id: dto.categoryId },
+    let categoryTemplate: CategoryTemplate | null = null;
+    if (dto.categoryTemplateId) {
+      categoryTemplate = await this.categoryTemplatesRepository.findOne({
+        where: { id: dto.categoryTemplateId },
       });
-      if (!category) {
-        throw new NotFoundException('Category not found');
+      if (!categoryTemplate) {
+        throw new NotFoundException('Category template not found');
       }
     }
 
@@ -65,7 +68,7 @@ export class ProductTemplatesService {
 
     const template = this.productTemplatesRepository.create({
       ...dto,
-      category,
+      categoryTemplate,
       brand,
     });
     return this.productTemplatesRepository.save(template);
@@ -74,7 +77,7 @@ export class ProductTemplatesService {
   async findAll(
     query: GetProductTemplatesDto,
   ): Promise<PaginationResult<ProductTemplate>> {
-    const { page = 1, limit = 10, search, categoryId, storeId } = query;
+    const { page = 1, limit = 10, search, categoryTemplateId, storeId } = query;
 
     // If storeId is provided, find templates that are NOT already assigned to that store
     let excludedTemplateIds: string[] = [];
@@ -92,8 +95,8 @@ export class ProductTemplatesService {
     }
 
     const where: any = {};
-    if (categoryId) {
-      where.categoryId = categoryId;
+    if (categoryTemplateId) {
+      where.categoryTemplateId = categoryTemplateId;
     }
     // Only add exclusion filter if we have templates to exclude
     if (storeId && excludedTemplateIds.length > 0) {
@@ -118,7 +121,7 @@ export class ProductTemplatesService {
 
     const [data, total] = await this.productTemplatesRepository.findAndCount({
       where: whereClause,
-      relations: ['category', 'brand'],
+      relations: ['categoryTemplate', 'brand'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -159,7 +162,7 @@ export class ProductTemplatesService {
     }
     return this.productTemplatesRepository.find({
       where,
-      relations: ['category', 'brand'],
+      relations: ['categoryTemplate', 'brand'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -167,7 +170,7 @@ export class ProductTemplatesService {
   async findOne(id: string): Promise<ProductTemplate> {
     const template = await this.productTemplatesRepository.findOne({
       where: { id },
-      relations: ['category', 'brand'],
+      relations: ['categoryTemplate', 'brand'],
     });
     if (!template) {
       throw new NotFoundException('Product template not found');
@@ -192,19 +195,19 @@ export class ProductTemplatesService {
       }
     }
 
-    if (dto.categoryId !== undefined) {
-      if (dto.categoryId) {
-        const category = await this.categoriesRepository.findOne({
-          where: { id: dto.categoryId },
+    if (dto.categoryTemplateId !== undefined) {
+      if (dto.categoryTemplateId) {
+        const categoryTemplate = await this.categoryTemplatesRepository.findOne({
+          where: { id: dto.categoryTemplateId },
         });
-        if (!category) {
-          throw new NotFoundException('Category not found');
+        if (!categoryTemplate) {
+          throw new NotFoundException('Category template not found');
         }
-        template.category = category;
-        template.categoryId = dto.categoryId;
+        template.categoryTemplate = categoryTemplate;
+        template.categoryTemplateId = dto.categoryTemplateId;
       } else {
-        template.category = null;
-        template.categoryId = null;
+        template.categoryTemplate = null;
+        template.categoryTemplateId = null;
       }
     }
 
@@ -245,18 +248,31 @@ export class ProductTemplatesService {
       throw new NotFoundException('Store not found');
     }
 
-    let category = template.category;
+    let category: Category;
     if (dto.categoryId) {
-      category = await this.categoriesRepository.findOne({
+      const c = await this.categoriesRepository.findOne({
         where: { id: dto.categoryId },
       });
-      if (!category) {
-        throw new NotFoundException('Category not found');
+      if (!c || c.storeId !== store.id) {
+        throw new NotFoundException('Category not found or does not belong to this store');
       }
-    }
-    if (!category) {
+      category = c;
+    } else if (template.categoryTemplate) {
+      let c = await this.categoriesRepository.findOne({
+        where: { storeId: store.id, name: template.categoryTemplate.name },
+      });
+      if (!c) {
+        c = this.categoriesRepository.create({
+          name: template.categoryTemplate.name,
+          storeId: store.id,
+          store,
+        });
+        c = await this.categoriesRepository.save(c);
+      }
+      category = c;
+    } else {
       throw new BadRequestException(
-        'Category is required. Set it on the template or in the request.',
+        'Category is required. Set category template on the template or provide categoryId in the request.',
       );
     }
 
@@ -273,17 +289,18 @@ export class ProductTemplatesService {
     const price = dto.price ?? template.price ?? 0;
     const costPrice = dto.costPrice ?? template.costPrice ?? 0;
 
+    const productName = `${template.name} - ${store.name || store.id}`;
     const existingProduct = await this.productsRepository.findOne({
-      where: { name: template.name },
+      where: { storeId: store.id, name: productName },
     });
     if (existingProduct) {
       throw new ConflictException(
-        `A product with the name "${template.name}" already exists. Choose a different template or ensure product names are unique.`,
+        `A product with the name "${productName}" already exists in this store. Choose a different template or ensure product names are unique.`,
       );
     }
 
     const product = this.productsRepository.create({
-      name: template.name,
+      name: productName,
       categoryId: category.id,
       category,
       brandId: brand?.id ?? null,
@@ -315,18 +332,9 @@ export class ProductTemplatesService {
       return [];
     }
 
-    let category = template.category;
-    if (dto.categoryId) {
-      category = await this.categoriesRepository.findOne({
-        where: { id: dto.categoryId },
-      });
-      if (!category) {
-        throw new NotFoundException('Category not found');
-      }
-    }
-    if (!category) {
+    if (!template.categoryTemplate) {
       throw new BadRequestException(
-        'Category is required. Set it on the template or in the request.',
+        'Category template is required on the product template for assign to all stores.',
       );
     }
 
@@ -345,6 +353,17 @@ export class ProductTemplatesService {
 
     const products: Product[] = [];
     for (const store of stores) {
+      let category = await this.categoriesRepository.findOne({
+        where: { storeId: store.id, name: template.categoryTemplate!.name },
+      });
+      if (!category) {
+        category = this.categoriesRepository.create({
+          name: template.categoryTemplate!.name,
+          storeId: store.id,
+          store,
+        });
+        category = await this.categoriesRepository.save(category);
+      }
       const productName = `${template.name} - ${store.name || store.id}`;
       const product = this.productsRepository.create({
         name: productName,

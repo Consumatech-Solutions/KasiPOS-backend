@@ -1,12 +1,20 @@
-import { IsArray, IsString, IsNotEmpty, IsUUID, ArrayMinSize, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsUUID,
+  ArrayMinSize,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AddTemplateCategoryItemDto {
-  @ApiProperty({ description: 'Category name (template category); will be created if not found', example: 'Electronics' })
-  @IsString()
-  @IsNotEmpty()
-  categoryName: string;
+  @ApiProperty({
+    description: 'Category template ID; a category with this template\'s name will be created in the store if not found',
+    example: 'uuid-here',
+  })
+  @IsUUID()
+  categoryTemplateId: string;
 
   @ApiProperty({
     description: 'Product template IDs to add as products in this category',
@@ -20,12 +28,20 @@ export class AddTemplateCategoryItemDto {
 }
 
 export class AddTemplateDto {
+  @ApiPropertyOptional({
+    description: 'Store ID (required when called by admin; ignored for store admin)',
+    example: 'store-uuid-here',
+  })
+  @IsOptional()
+  @IsUUID()
+  storeId?: string;
+
   @ApiProperty({
-    description: 'Array of categories, each with product templates to add to the store',
+    description: 'For each item: category template (imported as category) + product templates (imported as products)',
     type: [AddTemplateCategoryItemDto],
     example: [
-      { categoryName: 'Electronics', productTemplateIds: ['tpl-uuid-1', 'tpl-uuid-2'] },
-      { categoryName: 'Groceries', productTemplateIds: ['tpl-uuid-3'] },
+      { categoryTemplateId: 'cat-tpl-uuid-1', productTemplateIds: ['tpl-uuid-1', 'tpl-uuid-2'] },
+      { categoryTemplateId: 'cat-tpl-uuid-2', productTemplateIds: ['tpl-uuid-3'] },
     ],
   })
   @IsArray()

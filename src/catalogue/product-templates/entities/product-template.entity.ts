@@ -7,7 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Category } from '../../categories/entities/category.entity';
+import { CategoryTemplate } from '../../category-templates/entities/category-template.entity';
 import { Brand } from '../../../brands/entities/brand.entity';
 
 @Entity('product_templates')
@@ -18,12 +18,12 @@ export class ProductTemplate {
   @Column({ unique: true })
   name: string;
 
-  @Column({ name: 'category_id', nullable: true })
-  categoryId: string | null;
+  @Column({ name: 'category_template_id', nullable: true })
+  categoryTemplateId: string | null;
 
-  @ManyToOne(() => Category, { nullable: true })
-  @JoinColumn({ name: 'category_id' })
-  category: Category | null;
+  @ManyToOne(() => CategoryTemplate, { nullable: true })
+  @JoinColumn({ name: 'category_template_id' })
+  categoryTemplate: CategoryTemplate | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number | null;
