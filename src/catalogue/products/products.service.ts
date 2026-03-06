@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -7,9 +7,11 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { AdminCreateProductDto } from './dto/admin-create-product.dto';
 import { AdminUpdateProductDto } from './dto/admin-update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
+import { AddTemplateDto } from './dto/add-template.dto';
 import { Category } from '../categories/entities/category.entity';
 import { Brand } from '../../brands/entities/brand.entity';
 import { Store } from '../../stores/entities/store.entity';
+import { ProductTemplate } from '../product-templates/entities/product-template.entity';
 import { PaginationResult } from '../../common/dto/pagination.dto';
 import { ILike } from 'typeorm';
 
@@ -24,7 +26,9 @@ export class ProductsService {
     private brandsRepository: Repository<Brand>,
     @InjectRepository(Store)
     private storesRepository: Repository<Store>,
-  ) { }
+    @InjectRepository(ProductTemplate)
+    private productTemplatesRepository: Repository<ProductTemplate>,
+  ) {}
 
   // ==================== Non-Admin Methods ====================
 
@@ -237,5 +241,73 @@ export class ProductsService {
   async adminRemove(id: string): Promise<void> {
     const product = await this.findOne(id);
     await this.productsRepository.remove(product);
+  }
+
+  // ==================== Store Admin: Add templates to own store ====================
+
+  /**
+   * Add products from product templates to the store admin's store.
+   * Each item has a categoryId and an array of product template IDs; for each template
+   * a product is created with that category in the given store.
+   */
+  async addTemplates(storeId: string, dto: AddTemplateDto): Promise<Product[]> {
+    const store = await this.storesRepository.findOne({ where: { id: storeId } });
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
+    const created: Product[] = [];
+    for (const item of dto.items) {
+      const category = await this.categoriesRepository.findOne({
+        where: { id: item.categoryId },
+      });
+      if (!category) {
+        throw new NotFoundException(`Category not found: ${item.categoryId}`);
+      }
+
+      for (const templateId of item.productTemplateIds) {
+        const template = await this.productTemplatesRepository.findOne({
+          where: { id: templateId },
+          relations: ['category', 'brand'],
+        });
+        if (!template) {
+          throw new NotFoundException(`Product template not found: ${templateId}`);
+        }
+
+        const productName = `${template.name} - ${store.name || store.id}`;
+        const existing = await this.productsRepository.findOne({
+          where: { name: productName },
+        });
+        if (existing) {
+          throw new ConflictException(
+            `A product named "${productName}" already exists. Template "${template.name}" may already be added to this store.`,
+          );
+        }
+
+        const price = template.price ?? 0;
+        const costPrice = template.costPrice ?? 0;
+
+        const product = this.productsRepository.create({
+          name: productName,
+          categoryId: category.id,
+          category,
+          brandId: template.brandId ?? null,
+          brand: template.brand ?? null,
+          storeId: store.id,
+          store,
+          templateId: template.id,
+          price,
+          costPrice,
+          stock: template.stock ?? null,
+          barCode: template.barCode ?? null,
+          productImage: template.productImage ?? null,
+          lowStockThreshold: template.lowStockThreshold ?? null,
+          supplier: template.supplier ?? null,
+          unitOfMeasure: template.unitOfMeasure ?? null,
+        });
+        created.push(await this.productsRepository.save(product));
+      }
+    }
+    return created;
   }
 }

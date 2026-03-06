@@ -8,6 +8,8 @@ import {
   Body,
   Query,
   UseGuards,
+  Request,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,6 +25,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { AdminCreateProductDto } from './dto/admin-create-product.dto';
 import { AdminUpdateProductDto } from './dto/admin-update-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
+import { AddTemplateDto } from './dto/add-template.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -67,6 +70,43 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: 'Category not found' })
   async create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
+  }
+
+  @Post('add-template')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN)
+  @ApiOperation({
+    summary: 'Add products from templates to my store (store admin)',
+    description:
+      'For each category, add products from the given product templates to the store of the authenticated store admin. Each template becomes a product in the specified category.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Products created from templates',
+    schema: {
+      example: [
+        {
+          id: 'uuid-here',
+          name: 'Template Name - My Store',
+          categoryId: 'category-uuid',
+          storeId: 'store-uuid',
+          price: 99.99,
+          costPrice: 50.0,
+        },
+      ],
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Store admin has no store assigned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Store admin only' })
+  @ApiResponse({ status: 404, description: 'Category or product template not found' })
+  @ApiResponse({ status: 409, description: 'Product with this name already exists in store' })
+  async addTemplate(@Request() req: any, @Body() dto: AddTemplateDto) {
+    const storeId = req.user?.storeId;
+    if (!storeId) {
+      throw new BadRequestException('Store admin must be linked to a store');
+    }
+    return this.productsService.addTemplates(storeId, dto);
   }
 
   @Get()
