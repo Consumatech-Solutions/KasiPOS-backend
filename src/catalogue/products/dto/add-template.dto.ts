@@ -1,6 +1,6 @@
-import { IsArray, IsUUID, ArrayMinSize, ValidateNested } from 'class-validator';
+import { IsArray, IsOptional, IsUUID, ArrayMinSize, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AddTemplateCategoryItemDto {
   @ApiProperty({ description: 'Category ID', example: 'uuid-here' })
@@ -19,6 +19,14 @@ export class AddTemplateCategoryItemDto {
 }
 
 export class AddTemplateDto {
+  @ApiPropertyOptional({
+    description: 'Store ID to add products to. Required when called by admin; ignored when called by store admin (uses their store).',
+    example: 'store-uuid-here',
+  })
+  @IsOptional()
+  @IsUUID()
+  storeId?: string;
+
   @ApiProperty({
     description: 'Array of categories, each with product templates to add to the store',
     type: [AddTemplateCategoryItemDto],

@@ -74,11 +74,11 @@ export class ProductsController {
 
   @Post('add-template')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.STORE_ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
   @ApiOperation({
-    summary: 'Add products from templates to my store (store admin)',
+    summary: 'Add products from templates to a store',
     description:
-      'For each category, add products from the given product templates to the store of the authenticated store admin. Each template becomes a product in the specified category.',
+      'For each category, add products from the given product templates to a store. Store admin: uses their assigned store. Admin: must provide storeId in the body.',
   })
   @ApiResponse({
     status: 201,
@@ -96,15 +96,20 @@ export class ProductsController {
       ],
     },
   })
-  @ApiResponse({ status: 400, description: 'Store admin has no store assigned' })
+  @ApiResponse({ status: 400, description: 'Store admin has no store assigned, or admin did not provide storeId' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Store admin only' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin or store admin only' })
   @ApiResponse({ status: 404, description: 'Category or product template not found' })
   @ApiResponse({ status: 409, description: 'Product with this name already exists in store' })
   async addTemplate(@Request() req: any, @Body() dto: AddTemplateDto) {
-    const storeId = req.user?.storeId;
+    const isAdmin = req.user?.role === UserRole.ADMIN;
+    const storeId = isAdmin ? dto.storeId : req.user?.storeId;
     if (!storeId) {
-      throw new BadRequestException('Store admin must be linked to a store');
+      throw new BadRequestException(
+        isAdmin
+          ? 'Admin must provide storeId in the request body'
+          : 'Store admin must be linked to a store',
+      );
     }
     return this.productsService.addTemplates(storeId, dto);
   }
