@@ -73,8 +73,6 @@ export class ProductsController {
   }
 
   @Post('add-template')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.STORE_ADMIN)
   @ApiOperation({
     summary: 'Add products from templates to my store (store admin)',
     description:
