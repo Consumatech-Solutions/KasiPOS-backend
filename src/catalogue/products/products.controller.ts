@@ -177,8 +177,8 @@ export class ProductsController {
     status: 401,
     description: 'Unauthorized - Invalid or missing JWT token',
   })
-  async findAll(@Query() query: GetProductsDto) {
-    return this.productsService.findAll(query);
+  async findAll(@Query() query: GetProductsDto, @Request() req: any) {
+    return this.productsService.findAll(query, req.user.storeId);
   }
 
   @Get(':id')

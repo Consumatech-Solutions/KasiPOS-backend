@@ -60,10 +60,14 @@ export class ProductsService {
     return saved;
   }
 
-  async findAll(query: GetProductsDto): Promise<PaginationResult<Product>> {
+  async findAll(query: GetProductsDto, storeId: string): Promise<PaginationResult<Product>> {
     const { page = 1, limit = 10, search, categoryId, updatedAtAfter } = query;
 
     const where: any = {};
+
+    if (storeId) {
+      where.storeId = storeId;
+    }
 
     if (categoryId) {
       where.categoryId = categoryId;
