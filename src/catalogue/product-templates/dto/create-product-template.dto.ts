@@ -18,12 +18,12 @@ export class CreateProductTemplateDto {
   name: string;
 
   @ApiPropertyOptional({
-    description: 'Category ID',
+    description: 'Category template ID',
     example: 'uuid-here',
   })
   @IsUUID()
   @IsOptional()
-  categoryId?: string;
+  categoryTemplateId?: string;
 
   @ApiPropertyOptional({
     description: 'Brand ID',

@@ -55,31 +55,35 @@ export class ProductTemplatesController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
   @ApiOperation({
-    summary: 'List product templates',
-    description: 'Paginated list of product templates with optional search and category filter.',
+    summary: 'List product templates (admin or store admin)',
+    description: 'Paginated list of product templates with optional search and category template filter.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'categoryId', required: false, type: String })
+  @ApiQuery({ name: 'categoryTemplateId', required: false, type: String })
   @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Filter templates not yet assigned to this store' })
   @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
   async findAll(@Query() query: GetProductTemplatesDto) {
     return this.productTemplatesService.findAll(query);
   }
 
   @Get('for-store')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
   @ApiOperation({
-    summary: 'List product templates for store (Store Admin)',
+    summary: 'List product templates for store (admin or store admin)',
     description:
-      'Returns all product templates with category and brand, for the Add Templates flow. Optionally excludes templates already assigned to the authenticated store admin\'s store.',
+      'Returns all product templates with category template and brand, for the Add Templates flow. Optionally excludes templates already assigned to the authenticated store admin\'s store.',
   })
   @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Store Admin required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
   async findAllForStore(@Request() req: any) {
     const storeId = req.user?.storeId;
     return this.productTemplatesService.findAllForStore(storeId);
@@ -87,13 +91,14 @@ export class ProductTemplatesController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
   @ApiOperation({
-    summary: 'Get a product template by ID',
+    summary: 'Get a product template by ID (admin or store admin)',
   })
   @ApiParam({ name: 'id', type: String, description: 'Template UUID' })
   @ApiResponse({ status: 200, description: 'Product template retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
   @ApiResponse({ status: 404, description: 'Product template not found' })
   async findOne(@Param('id') id: string) {
     return this.productTemplatesService.findOne(id);

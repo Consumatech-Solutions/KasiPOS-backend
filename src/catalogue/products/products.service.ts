@@ -12,6 +12,7 @@ import { Category } from '../categories/entities/category.entity';
 import { Brand } from '../../brands/entities/brand.entity';
 import { Store } from '../../stores/entities/store.entity';
 import { ProductTemplate } from '../product-templates/entities/product-template.entity';
+import { CategoryTemplate } from '../category-templates/entities/category-template.entity';
 import { PaginationResult } from '../../common/dto/pagination.dto';
 import { ILike } from 'typeorm';
 
@@ -28,6 +29,8 @@ export class ProductsService {
     private storesRepository: Repository<Store>,
     @InjectRepository(ProductTemplate)
     private productTemplatesRepository: Repository<ProductTemplate>,
+    @InjectRepository(CategoryTemplate)
+    private categoryTemplatesRepository: Repository<CategoryTemplate>,
   ) {}
 
   // ==================== Non-Admin Methods ====================
@@ -246,9 +249,9 @@ export class ProductsService {
   // ==================== Store Admin: Add templates to own store ====================
 
   /**
-   * Add categories and products from templates to the store admin's store.
-   * For each item: find a category by name, or create it if not found; then create
-   * products from the given template IDs in that category.
+   * Import category templates as categories and product templates as products for the store.
+   * For each item: get category template, get or create category in store with that name;
+   * then create products from the given product template IDs in that category.
    */
   async addTemplates(storeId: string, dto: AddTemplateDto): Promise<Product[]> {
     const store = await this.storesRepository.findOne({ where: { id: storeId } });
@@ -258,19 +261,31 @@ export class ProductsService {
 
     const created: Product[] = [];
     for (const item of dto.items) {
-      const categoryName = item.categoryName.trim();
+      const categoryTemplate = await this.categoryTemplatesRepository.findOne({
+        where: { id: item.categoryTemplateId },
+      });
+      if (!categoryTemplate) {
+        throw new NotFoundException(
+          `Category template not found: ${item.categoryTemplateId}`,
+        );
+      }
+
       let category = await this.categoriesRepository.findOne({
-        where: { name: categoryName },
+        where: { storeId, name: categoryTemplate.name },
       });
       if (!category) {
-        category = this.categoriesRepository.create({ name: categoryName });
+        category = this.categoriesRepository.create({
+          name: categoryTemplate.name,
+          storeId: store.id,
+          store,
+        });
         category = await this.categoriesRepository.save(category);
       }
 
       for (const templateId of item.productTemplateIds) {
         const template = await this.productTemplatesRepository.findOne({
           where: { id: templateId },
-          relations: ['category', 'brand'],
+          relations: ['categoryTemplate', 'brand'],
         });
         if (!template) {
           throw new NotFoundException(`Product template not found: ${templateId}`);
