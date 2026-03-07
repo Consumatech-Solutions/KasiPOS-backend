@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { TempIdMappingsService } from '../../common/temp-id-mappings/temp-id-mappings.service';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PaginationResult } from '../../common/dto/pagination.dto';
 
@@ -11,31 +12,42 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
-  ) { }
+    private tempIdMappingsService: TempIdMappingsService,
+  ) {}
 
   async create(createCategoryDto: CreateCategoryDto, storeId: string): Promise<Category> {
+    const { _tempId, name } = createCategoryDto;
+
     const existing = await this.categoriesRepository.findOne({
-      where: { storeId, name: createCategoryDto.name },
+      where: { storeId, name },
     });
     if (existing) {
-      throw new ConflictException(`A category with the name "${createCategoryDto.name}" already exists in this store.`);
+      throw new ConflictException(`A category with the name "${name}" already exists in this store.`);
     }
 
     const category = this.categoriesRepository.create({
-      name: createCategoryDto.name,
+      name,
       storeId,
     });
-    return this.categoriesRepository.save(category);
+    const saved = await this.categoriesRepository.save(category);
+    if (_tempId) {
+      await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'category');
+    }
+    return saved;
   }
 
   async findAll(
     page: number = 1,
     limit: number = 10,
     storeId?: string,
+    updatedAtAfter?: string,
   ): Promise<PaginationResult<Category>> {
-    const where: { storeId?: string } = {};
+    const where: { storeId?: string; updatedAt?: any } = {};
     if (storeId) {
       where.storeId = storeId;
+    }
+    if (updatedAtAfter) {
+      where.updatedAt = MoreThan(new Date(updatedAtAfter));
     }
     const [data, total] = await this.categoriesRepository.findAndCount({
       where,

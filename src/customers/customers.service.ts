@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, MoreThan } from 'typeorm';
 import { Customer } from './entities/customer.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappings.service';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { GetCustomersDto } from './dto/get-customers.dto';
@@ -12,24 +13,40 @@ export class CustomersService {
   constructor(
     @InjectRepository(Customer)
     private customersRepository: Repository<Customer>,
-  ) { }
+    private tempIdMappingsService: TempIdMappingsService,
+  ) {}
 
-  async create(createCustomerDto: CreateCustomerDto): Promise<Customer> {
+  async create(
+    createCustomerDto: CreateCustomerDto,
+    tempIdFromBody?: string,
+  ): Promise<Customer> {
+    const _tempId = createCustomerDto._tempId ?? tempIdFromBody;
+    const { _tempId: _, ...dto } = createCustomerDto;
+
     const customer = this.customersRepository.create({
-      ...createCustomerDto,
-      loyaltyPoints: createCustomerDto.loyaltyPoints ?? 0,
+      ...dto,
+      loyaltyPoints: dto.loyaltyPoints ?? 0,
     });
-    return this.customersRepository.save(customer);
+    const saved = await this.customersRepository.save(customer);
+    if (_tempId) {
+      await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'customer');
+    }
+    return saved;
   }
 
   async findAll(query: GetCustomersDto): Promise<PaginationResult<Customer>> {
-    const { page = 1, limit = 10, search } = query;
+    const { page = 1, limit = 10, search, updatedAtAfter } = query;
 
-    let whereClause: any = {};
+    const baseWhere: any = {};
+    if (updatedAtAfter) {
+      baseWhere.updatedAt = MoreThan(new Date(updatedAtAfter));
+    }
+
+    let whereClause: any = baseWhere;
     if (search) {
       whereClause = [
-        { name: ILike(`%${search}%`) },
-        { contact: ILike(`%${search}%`) },
+        { ...baseWhere, name: ILike(`%${search}%`) },
+        { ...baseWhere, contact: ILike(`%${search}%`) },
       ];
     }
 

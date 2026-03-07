@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
+import { TempIdMappingsService } from '../../common/temp-id-mappings/temp-id-mappings.service';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AdminCreateProductDto } from './dto/admin-create-product.dto';
 import { AdminUpdateProductDto } from './dto/admin-update-product.dto';
@@ -14,7 +15,7 @@ import { Store } from '../../stores/entities/store.entity';
 import { ProductTemplate } from '../product-templates/entities/product-template.entity';
 import { CategoryTemplate } from '../category-templates/entities/category-template.entity';
 import { PaginationResult } from '../../common/dto/pagination.dto';
-import { ILike } from 'typeorm';
+import { ILike, MoreThan } from 'typeorm';
 
 @Injectable()
 export class ProductsService {
@@ -31,33 +32,44 @@ export class ProductsService {
     private productTemplatesRepository: Repository<ProductTemplate>,
     @InjectRepository(CategoryTemplate)
     private categoryTemplatesRepository: Repository<CategoryTemplate>,
+    private tempIdMappingsService: TempIdMappingsService,
   ) {}
 
   // ==================== Non-Admin Methods ====================
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
+    const { _tempId, ...dto } = createProductDto;
+
     // Verify category exists
     const category = await this.categoriesRepository.findOne({
-      where: { id: createProductDto.categoryId },
+      where: { id: dto.categoryId },
     });
     if (!category) {
       throw new NotFoundException('Category not found');
     }
 
     const product = this.productsRepository.create({
-      ...createProductDto,
+      ...dto,
       category,
     });
-    return this.productsRepository.save(product);
+    const saved = await this.productsRepository.save(product);
+    if (_tempId) {
+      await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'product');
+    }
+    return saved;
   }
 
   async findAll(query: GetProductsDto): Promise<PaginationResult<Product>> {
-    const { page = 1, limit = 10, search, categoryId } = query;
+    const { page = 1, limit = 10, search, categoryId, updatedAtAfter } = query;
 
     const where: any = {};
 
     if (categoryId) {
       where.categoryId = categoryId;
+    }
+
+    if (updatedAtAfter) {
+      where.updatedAt = MoreThan(new Date(updatedAtAfter));
     }
 
     let whereClause: any = where;

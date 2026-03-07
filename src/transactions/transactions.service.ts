@@ -11,6 +11,9 @@ import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { Product } from '../catalogue/products/entities/product.entity';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { VouchersService } from '../vouchers/vouchers.service';
+import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappings.service';
+
+const TEMP_ID_PATTERN = /^temp-\d+$/;
 
 @Injectable()
 export class TransactionsService {
@@ -21,6 +24,7 @@ export class TransactionsService {
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     private readonly vouchersService: VouchersService,
+    private readonly tempIdMappingsService: TempIdMappingsService,
   ) {}
 
   async create(dto: CreateTransactionDto): Promise<Transaction> {
@@ -30,9 +34,32 @@ export class TransactionsService {
       );
     }
 
+    const dtoResolved = { ...dto, items: dto.items.map((item) => ({ ...item })) };
+    if (dto.customerId && TEMP_ID_PATTERN.test(String(dto.customerId))) {
+      const resolved = await this.tempIdMappingsService.resolveId(String(dto.customerId));
+      if (!resolved) {
+        throw new BadRequestException(
+          'Customer is not yet synced. Please wait for sync to complete and try again.',
+        );
+      }
+      dtoResolved.customerId = resolved;
+    }
+    for (let i = 0; i < dtoResolved.items.length; i++) {
+      const id = String(dtoResolved.items[i].productId ?? '');
+      if (TEMP_ID_PATTERN.test(id)) {
+        const resolved = await this.tempIdMappingsService.resolveId(id);
+        if (!resolved) {
+          throw new BadRequestException(
+            `Product (${id}) is not yet synced. Save or sync products first, then try again.`,
+          );
+        }
+        dtoResolved.items[i].productId = resolved;
+      }
+    }
+
     return this.dataSource.transaction(async (manager) => {
       // Lock products (pessimistic write) to prevent race conditions on stock
-      for (const item of dto.items) {
+      for (const item of dtoResolved.items) {
         const product = await manager.getRepository(Product).findOne({
           where: { id: item.productId },
           lock: { mode: 'pessimistic_write' },
@@ -55,13 +82,13 @@ export class TransactionsService {
       }
 
       const tx = manager.getRepository(Transaction).create({
-        storeId: dto.storeId,
-        customerId: dto.customerId ?? null,
-        items: dto.items,
-        paymentMethod: dto.paymentMethod,
-        total: dto.total,
-        voucherCode: dto.voucherCode ?? null,
-        discountAmount: dto.discountAmount ?? null,
+        storeId: dtoResolved.storeId,
+        customerId: dtoResolved.customerId ?? null,
+        items: dtoResolved.items,
+        paymentMethod: dtoResolved.paymentMethod,
+        total: dtoResolved.total,
+        voucherCode: dtoResolved.voucherCode ?? null,
+        discountAmount: dtoResolved.discountAmount ?? null,
       });
 
       const savedTransaction = await manager
@@ -69,14 +96,14 @@ export class TransactionsService {
         .save(tx);
 
       // Record voucher usage if voucher was applied
-      if (dto.voucherCode) {
+      if (dtoResolved.voucherCode) {
         // Record usage outside transaction to avoid deadlocks
         // This is safe because validation already happened on frontend
         this.vouchersService
           .recordUsage(
-            dto.voucherCode,
-            dto.storeId,
-            dto.customerId ?? undefined,
+            dtoResolved.voucherCode,
+            dtoResolved.storeId,
+            dtoResolved.customerId ?? undefined,
           )
           .catch((err) => {
             // Log error but don't fail transaction

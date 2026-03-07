@@ -91,7 +91,12 @@ export class CategoriesController {
     @Request() req?: any,
   ) {
     const storeId = req?.user?.storeId ?? storeIdQuery;
-    return this.categoriesService.findAll(paginationDto.page, paginationDto.limit, storeId);
+    return this.categoriesService.findAll(
+      paginationDto.page,
+      paginationDto.limit,
+      storeId,
+      paginationDto.updatedAtAfter,
+    );
   }
 
   @Get(':id')

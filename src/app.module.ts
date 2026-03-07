@@ -45,6 +45,9 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { AuditLog } from './audit-logs/entities/audit-log.entity';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditLogInterceptor } from './audit-logs/interceptors/audit-log.interceptor';
+import { TempIdMappingsModule } from './common/temp-id-mappings/temp-id-mappings.module';
+import { TempIdResolveInterceptor } from './common/interceptors/temp-id-resolve.interceptor';
+import { TempIdMapping } from './common/entities/temp-id-mapping.entity';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { ServicesModule } from './services/services.module';
 import { Campaign } from './campaigns/entities/campaign.entity';
@@ -73,7 +76,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
                 password: configService.get<string>('database.password'),
                 database: configService.get<string>('database.database'),
               }),
-          entities: [User, Category, CategoryTemplate, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings],
+          entities: [User, Category, CategoryTemplate, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings, TempIdMapping],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
           logging: false, // Disable query logging
@@ -82,6 +85,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
+    TempIdMappingsModule,
     ServicesModule,
     AuthModule,
     UsersModule,
@@ -106,6 +110,10 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TempIdResolveInterceptor,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditLogInterceptor,

@@ -53,8 +53,11 @@ export class CustomersController {
     status: 401,
     description: 'Unauthorized - Invalid or missing JWT token',
   })
-  async create(@Body() createCustomerDto: CreateCustomerDto) {
-    return this.customersService.create(createCustomerDto);
+  async create(
+    @Body() createCustomerDto: CreateCustomerDto,
+    @Body('_tempId') tempIdFromBody?: string,
+  ) {
+    return this.customersService.create(createCustomerDto, tempIdFromBody);
   }
 
   @Get()

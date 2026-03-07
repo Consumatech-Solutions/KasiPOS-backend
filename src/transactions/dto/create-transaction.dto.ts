@@ -7,12 +7,17 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Min,
   ValidateNested,
 } from 'class-validator';
 
+/** UUID or temp-X (resolved to server ID by TempIdResolveInterceptor before use). */
+const UUID_OR_TEMP = /^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|temp-\d+)$/i;
+
 class CreateTransactionItemDto {
-  @IsUUID()
+  @IsString()
+  @Matches(UUID_OR_TEMP, { message: 'productId must be a UUID or a temp ID (temp-<number>)' })
   productId: string;
 
   @IsString()
@@ -41,7 +46,8 @@ export class CreateTransactionDto {
   storeId: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @Matches(UUID_OR_TEMP, { message: 'customerId must be a UUID or a temp ID (temp-<number>)' })
   customerId?: string;
 
   @IsArray()

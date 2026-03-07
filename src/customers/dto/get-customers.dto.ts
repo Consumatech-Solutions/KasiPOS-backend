@@ -9,4 +9,12 @@ export class GetCustomersDto extends PaginationDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({
+    description: 'Return only items updated after this ISO 8601 date (for incremental sync)',
+    example: '2026-01-20T08:00:00.000Z',
+  })
+  @IsOptional()
+  @IsString()
+  updatedAtAfter?: string;
 }

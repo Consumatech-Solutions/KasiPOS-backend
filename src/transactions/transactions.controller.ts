@@ -6,6 +6,7 @@ import {
   Query,
   Param,
   UseGuards,
+  UseInterceptors,
   Request,
 } from '@nestjs/common';
 import {
@@ -17,6 +18,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TempIdResolveInterceptor } from '../common/interceptors/temp-id-resolve.interceptor';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { TransactionsService } from './transactions.service';
@@ -29,6 +31,7 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Post()
+  @UseInterceptors(TempIdResolveInterceptor)
   @ApiOperation({ summary: 'Create a transaction (sale)' })
   @ApiResponse({ status: 201, description: 'Transaction created successfully' })
   async create(@Body() dto: CreateTransactionDto) {
