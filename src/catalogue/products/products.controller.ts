@@ -29,7 +29,7 @@ import { AddTemplateDto } from './dto/add-template.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '../../users/entities/user.entity';
+import { User, UserRole } from '../../users/entities/user.entity';
 
 @ApiTags('Products')
 @Controller('products')
@@ -68,8 +68,8 @@ export class ProductsController {
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  async create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
+  async create(@Body() createProductDto: CreateProductDto, @Request() req: any) {
+    return this.productsService.create(createProductDto, req.user.storeId);
   }
 
   @Post('add-template')

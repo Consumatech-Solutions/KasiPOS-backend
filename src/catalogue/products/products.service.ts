@@ -37,7 +37,7 @@ export class ProductsService {
 
   // ==================== Non-Admin Methods ====================
 
-  async create(createProductDto: CreateProductDto): Promise<Product> {
+  async create(createProductDto: CreateProductDto, storeId: string): Promise<Product> {
     const { _tempId, ...dto } = createProductDto;
 
     // Verify category exists
@@ -51,6 +51,7 @@ export class ProductsService {
     const product = this.productsRepository.create({
       ...dto,
       category,
+      storeId
     });
     const saved = await this.productsRepository.save(product);
     if (_tempId) {
