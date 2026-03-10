@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, MoreThan } from 'typeorm';
 import { Customer } from './entities/customer.entity';
@@ -7,13 +7,17 @@ import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappin
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { GetCustomersDto } from './dto/get-customers.dto';
+import { WelcomeSmsService } from '../services/welcome-sms.service';
 
 @Injectable()
 export class CustomersService {
+  private readonly logger = new Logger(CustomersService.name);
+
   constructor(
     @InjectRepository(Customer)
     private customersRepository: Repository<Customer>,
     private tempIdMappingsService: TempIdMappingsService,
+    private welcomeSmsService: WelcomeSmsService,
   ) {}
 
   async create(
@@ -30,6 +34,14 @@ export class CustomersService {
     const saved = await this.customersRepository.save(customer);
     if (_tempId) {
       await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'customer');
+    }
+    // Send welcome SMS (non-blocking: do not fail customer creation if SMS fails)
+    if (saved.contact?.trim()) {
+      this.welcomeSmsService
+        .sendWelcome(saved.contact, saved.name)
+        .catch((err) => {
+          this.logger.warn('Welcome SMS failed (customer was created)', err?.message ?? err);
+        });
     }
     return saved;
   }
