@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -33,7 +34,8 @@ export class CustomersController {
   @Post()
   @ApiOperation({
     summary: 'Create a new customer',
-    description: 'Create a new customer. Requires authentication.',
+    description:
+      'Create a new customer. Store admin: customer is linked to their store. Admin: may pass storeId in body.',
   })
   @ApiResponse({
     status: 201,
@@ -44,6 +46,7 @@ export class CustomersController {
         name: 'John Doe',
         contact: '+1234567890',
         loyaltyPoints: 0,
+        storeId: 'store-uuid',
         createdAt: '2026-01-20T08:00:00.000Z',
         updatedAt: '2026-01-20T08:00:00.000Z',
       },
@@ -56,8 +59,10 @@ export class CustomersController {
   async create(
     @Body() createCustomerDto: CreateCustomerDto,
     @Body('_tempId') tempIdFromBody?: string,
+    @Request() req?: any,
   ) {
-    return this.customersService.create(createCustomerDto, tempIdFromBody);
+    const storeId = req?.user?.storeId ?? createCustomerDto.storeId;
+    return this.customersService.create(createCustomerDto, tempIdFromBody, storeId);
   }
 
   @Get()
@@ -108,12 +113,23 @@ export class CustomersController {
       },
     },
   })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Filter by store (admin); store admin sees only their store',
+  })
   @ApiResponse({
     status: 401,
     description: 'Unauthorized - Invalid or missing JWT token',
   })
-  async findAll(@Query() query: GetCustomersDto) {
-    return this.customersService.findAll(query);
+  async findAll(
+    @Query() query: GetCustomersDto,
+    @Query('storeId') storeIdQuery?: string,
+    @Request() req?: any,
+  ) {
+    const storeId = req?.user?.storeId ?? storeIdQuery ?? query.storeId;
+    return this.customersService.findAll(query, storeId);
   }
 
   @Get(':id')
@@ -141,13 +157,24 @@ export class CustomersController {
       },
     },
   })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Scope to store (admin); store admin sees only their store',
+  })
   @ApiResponse({
     status: 401,
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 404, description: 'Customer not found' })
-  async findOne(@Param('id') id: string) {
-    return this.customersService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Query('storeId') storeIdQuery?: string,
+    @Request() req?: any,
+  ) {
+    const storeId = req?.user?.storeId ?? storeIdQuery;
+    return this.customersService.findOne(id, storeId);
   }
 
   @Patch(':id')
@@ -174,6 +201,12 @@ export class CustomersController {
       },
     },
   })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Scope to store (admin)',
+  })
   @ApiResponse({
     status: 401,
     description: 'Unauthorized - Invalid or missing JWT token',
@@ -182,8 +215,11 @@ export class CustomersController {
   async update(
     @Param('id') id: string,
     @Body() updateCustomerDto: UpdateCustomerDto,
+    @Query('storeId') storeIdQuery?: string,
+    @Request() req?: any,
   ) {
-    return this.customersService.update(id, updateCustomerDto);
+    const storeId = req?.user?.storeId ?? storeIdQuery;
+    return this.customersService.update(id, updateCustomerDto, storeId);
   }
 
   @Delete(':id')
@@ -205,13 +241,24 @@ export class CustomersController {
       },
     },
   })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Scope to store (admin)',
+  })
   @ApiResponse({
     status: 401,
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 404, description: 'Customer not found' })
-  async remove(@Param('id') id: string) {
-    await this.customersService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @Query('storeId') storeIdQuery?: string,
+    @Request() req?: any,
+  ) {
+    const storeId = req?.user?.storeId ?? storeIdQuery;
+    await this.customersService.remove(id, storeId);
     return { message: 'Customer deleted successfully' };
   }
 }
