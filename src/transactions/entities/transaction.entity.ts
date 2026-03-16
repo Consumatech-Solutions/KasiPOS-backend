@@ -15,6 +15,12 @@ export type TransactionItemPayload = {
   imageUrl?: string;
 };
 
+export type TransactionDiscount = {
+  discountType: 'amount' | 'percentage';
+  discountAmount: number;
+  discountReason: string;
+};
+
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
@@ -38,8 +44,8 @@ export class Transaction {
   @Column({ name: 'voucher_code', nullable: true })
   voucherCode: string | null;
 
-  @Column({ name: 'discount_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
-  discountAmount: number | null;
+  @Column({ type: 'jsonb', nullable: true })
+  discount: TransactionDiscount | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

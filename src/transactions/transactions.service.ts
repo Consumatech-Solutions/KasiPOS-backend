@@ -57,6 +57,27 @@ export class TransactionsService {
       }
     }
 
+    // Validate discount: amount must not exceed cart subtotal; percentage must not exceed 100
+    const subtotal = dtoResolved.items.reduce(
+      (sum, item) => sum + Number(item.totalPrice),
+      0,
+    );
+    if (dtoResolved.discount) {
+      if (dtoResolved.discount.discountType === 'amount') {
+        if (Number(dtoResolved.discount.discountAmount) > subtotal) {
+          throw new BadRequestException(
+            `Discount amount cannot exceed cart subtotal (${subtotal})`,
+          );
+        }
+      } else {
+        if (Number(dtoResolved.discount.discountAmount) > 100) {
+          throw new BadRequestException(
+            'Discount percentage cannot exceed 100',
+          );
+        }
+      }
+    }
+
     return this.dataSource.transaction(async (manager) => {
       // Lock products (pessimistic write) to prevent race conditions on stock
       for (const item of dtoResolved.items) {
@@ -88,7 +109,7 @@ export class TransactionsService {
         paymentMethod: dtoResolved.paymentMethod,
         total: dtoResolved.total,
         voucherCode: dtoResolved.voucherCode ?? null,
-        discountAmount: dtoResolved.discountAmount ?? null,
+        discount: dtoResolved.discount ?? null,
       });
 
       const savedTransaction = await manager
