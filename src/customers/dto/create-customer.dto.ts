@@ -1,10 +1,18 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, Min, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCustomerDto {
   @IsOptional()
   @IsString()
   _tempId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Store ID (admin only; store admin uses their linked store)',
+  })
+  @IsOptional()
+  @IsUUID()
+  storeId?: string;
+
   @ApiProperty({
     description: 'Customer name',
     example: 'John Doe',
