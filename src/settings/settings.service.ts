@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { StoreSettings } from './entities/store-settings.entity';
+import { StoreSettings, StoreCreditSetting } from './entities/store-settings.entity';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Injectable()
@@ -48,6 +48,13 @@ export class SettingsService {
     if (dto.vatIncludedInPrice !== undefined) {
       settings.vatIncludedInPrice = dto.vatIncludedInPrice;
     }
+    if (dto.credit !== undefined) {
+      const { customerCredit } = dto.credit;
+      if (customerCredit.termType === 'fixed' && (customerCredit.term == null || customerCredit.term === undefined)) {
+        throw new BadRequestException('term is required when termType is "fixed"');
+      }
+      settings.credit = dto.credit as any;
+    }
     return this.settingsRepository.save(settings);
   }
 
@@ -60,5 +67,12 @@ export class SettingsService {
       where: { storeId },
     });
     return settings?.vatIncludedInPrice ?? true;
+  }
+
+  async getCreditSettings(storeId: string): Promise<StoreCreditSetting | null> {
+    const settings = await this.settingsRepository.findOne({
+      where: { storeId },
+    });
+    return settings?.credit ?? null;
   }
 }

@@ -24,6 +24,20 @@ export class StoreSettings {
   @Column({ name: 'vat_included_in_price', default: true })
   vatIncludedInPrice: boolean;
 
+  /**
+   * Credit settings for the store: limit, term type (fixed/variable), term (days).
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  credit: StoreCreditSetting | null;
+
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
+
+export type StoreCreditSetting = {
+  customerCredit: {
+    creditLimit: number;
+    termType: 'fixed' | 'variable';
+    term?: number; // required when termType is 'fixed', optional when 'variable'
+  };
+};
