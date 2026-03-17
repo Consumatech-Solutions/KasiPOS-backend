@@ -80,6 +80,8 @@ export class TransactionsService {
             'Discount percentage cannot exceed 100',
           );
         }
+      }
+    }
 
     if (dtoResolved.paymentMethod === 'Credit') {
       if (!dtoResolved.customerId) {
