@@ -62,6 +62,25 @@ export class TransactionsService {
       }
     }
 
+    // Validate discount: amount must not exceed cart subtotal; percentage must not exceed 100
+    const subtotal = dtoResolved.items.reduce(
+      (sum, item) => sum + Number(item.totalPrice),
+      0,
+    );
+    if (dtoResolved.discount) {
+      if (dtoResolved.discount.discountType === 'amount') {
+        if (Number(dtoResolved.discount.discountAmount) > subtotal) {
+          throw new BadRequestException(
+            `Discount amount cannot exceed cart subtotal (${subtotal})`,
+          );
+        }
+      } else {
+        if (Number(dtoResolved.discount.discountAmount) > 100) {
+          throw new BadRequestException(
+            'Discount percentage cannot exceed 100',
+          );
+        }
+
     if (dtoResolved.paymentMethod === 'Credit') {
       if (!dtoResolved.customerId) {
         throw new BadRequestException('Customer is required when payment method is Credit.');
@@ -129,7 +148,7 @@ export class TransactionsService {
         paymentMethod: dtoResolved.paymentMethod,
         total: dtoResolved.total,
         voucherCode: dtoResolved.voucherCode ?? null,
-        discountAmount: dtoResolved.discountAmount ?? null,
+        discount: dtoResolved.discount ?? null,
         creditDetails,
       });
 

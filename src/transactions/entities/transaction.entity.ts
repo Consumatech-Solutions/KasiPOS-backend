@@ -18,6 +18,12 @@ export type TransactionItemPayload = {
   imageUrl?: string;
 };
 
+export type TransactionDiscount = {
+  discountType: 'amount' | 'percentage';
+  discountAmount: number;
+  discountReason: string;
+};
+
 export type TransactionCreditDetails = {
   paymentDate?: string; // ISO date string
   note?: string;
@@ -50,8 +56,8 @@ export class Transaction {
   @Column({ name: 'voucher_code', nullable: true })
   voucherCode: string | null;
 
-  @Column({ name: 'discount_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
-  discountAmount: number | null;
+  @Column({ type: 'jsonb', nullable: true })
+  discount: TransactionDiscount | null;
 
   @Column({ name: 'credit_details', type: 'jsonb', nullable: true })
   creditDetails: TransactionCreditDetails | null;
