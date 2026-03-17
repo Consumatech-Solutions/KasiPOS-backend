@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsDateString,
   IsIn,
   IsInt,
   IsNumber,
@@ -11,6 +12,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class TransactionDiscountDto {
   @IsIn(['amount', 'percentage'], {
@@ -56,6 +58,18 @@ class CreateTransactionItemDto {
   imageUrl?: string;
 }
 
+export class CreditDetailsDto {
+  @ApiPropertyOptional({ description: 'Expected payment date (ISO 8601)', example: '2026-04-01' })
+  @IsOptional()
+  @IsDateString()
+  paymentDate?: string;
+
+  @ApiPropertyOptional({ description: 'Note for this credit transaction' })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
 export class CreateTransactionDto {
   @IsUUID()
   storeId: string;
@@ -74,8 +88,8 @@ export class CreateTransactionDto {
   @IsNumber()
   total: number;
 
-  @IsIn(['Cash', 'Card', 'Mobile Money'])
-  paymentMethod: 'Cash' | 'Card' | 'Mobile Money';
+  @IsIn(['Cash', 'Card', 'Mobile Money', 'Credit'])
+  paymentMethod: 'Cash' | 'Card' | 'Mobile Money' | 'Credit';
 
   @IsOptional()
   @IsString()
@@ -85,4 +99,12 @@ export class CreateTransactionDto {
   @ValidateNested()
   @Type(() => TransactionDiscountDto)
   discount?: TransactionDiscountDto;
+
+  @ApiPropertyOptional({
+    description: 'Required when paymentMethod is "Credit": paymentDate (optional), note (optional)',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreditDetailsDto)
+  creditDetails?: CreditDetailsDto;
 }

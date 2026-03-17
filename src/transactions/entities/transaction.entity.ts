@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Customer } from '../../customers/entities/customer.entity';
 
 export type TransactionItemPayload = {
   productId: string;
@@ -21,6 +24,11 @@ export type TransactionDiscount = {
   discountReason: string;
 };
 
+export type TransactionCreditDetails = {
+  paymentDate?: string; // ISO date string
+  note?: string;
+};
+
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
@@ -32,11 +40,15 @@ export class Transaction {
   @Column({ name: 'customer_id', type: 'uuid', nullable: true })
   customerId: string | null;
 
+  @ManyToOne(() => Customer, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'customer_id' })
+  customer: Customer | null;
+
   @Column({ type: 'jsonb' })
   items: TransactionItemPayload[];
 
   @Column({ name: 'payment_method' })
-  paymentMethod: 'Cash' | 'Card' | 'Mobile Money';
+  paymentMethod: 'Cash' | 'Card' | 'Mobile Money' | 'Credit';
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   total: number;
@@ -46,6 +58,9 @@ export class Transaction {
 
   @Column({ type: 'jsonb', nullable: true })
   discount: TransactionDiscount | null;
+
+  @Column({ name: 'credit_details', type: 'jsonb', nullable: true })
+  creditDetails: TransactionCreditDetails | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

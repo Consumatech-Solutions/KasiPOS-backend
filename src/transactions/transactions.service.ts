@@ -9,9 +9,11 @@ import { Transaction } from './entities/transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { Product } from '../catalogue/products/entities/product.entity';
+import { Customer } from '../customers/entities/customer.entity';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappings.service';
+import { SettingsService } from '../settings/settings.service';
 
 const TEMP_ID_PATTERN = /^temp-\d+$/;
 
@@ -23,8 +25,11 @@ export class TransactionsService {
     private readonly transactionsRepository: Repository<Transaction>,
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+    @InjectRepository(Customer)
+    private readonly customersRepository: Repository<Customer>,
     private readonly vouchersService: VouchersService,
     private readonly tempIdMappingsService: TempIdMappingsService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async create(dto: CreateTransactionDto): Promise<Transaction> {
@@ -75,6 +80,10 @@ export class TransactionsService {
             'Discount percentage cannot exceed 100',
           );
         }
+
+    if (dtoResolved.paymentMethod === 'Credit') {
+      if (!dtoResolved.customerId) {
+        throw new BadRequestException('Customer is required when payment method is Credit.');
       }
     }
 
@@ -102,6 +111,36 @@ export class TransactionsService {
         await manager.getRepository(Product).save(product);
       }
 
+      let creditDetails: { paymentDate?: string; note?: string } | null = null;
+      if (dtoResolved.paymentMethod === 'Credit') {
+        const customerId = dtoResolved.customerId!;
+        const customer = await manager.getRepository(Customer).findOne({
+          where: { id: customerId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!customer) {
+          throw new NotFoundException(`Customer not found: ${customerId}`);
+        }
+        const creditSettings = await this.settingsService.getCreditSettings(dtoResolved.storeId);
+        if (!creditSettings?.customerCredit || creditSettings.customerCredit.creditLimit == null) {
+          throw new BadRequestException(
+            'Credit is not configured for this store. Set customer credit limit in store settings.',
+          );
+        }
+        const limit = Number(creditSettings.customerCredit.creditLimit);
+        const currentOutstanding = Number(customer.outstandingCredit ?? 0);
+        const totalNum = Number(dtoResolved.total);
+        if (currentOutstanding + totalNum > limit) {
+          const maxAllowed = Math.max(0, limit - currentOutstanding);
+          throw new BadRequestException(
+            `Credit limit exceeded. Customer outstanding: ${currentOutstanding}, limit: ${limit}. Maximum additional credit allowed for this transaction: ${maxAllowed}.`,
+          );
+        }
+        customer.outstandingCredit = currentOutstanding + totalNum;
+        await manager.getRepository(Customer).save(customer);
+        creditDetails = dtoResolved.creditDetails ?? {};
+      }
+
       const tx = manager.getRepository(Transaction).create({
         storeId: dtoResolved.storeId,
         customerId: dtoResolved.customerId ?? null,
@@ -110,6 +149,7 @@ export class TransactionsService {
         total: dtoResolved.total,
         voucherCode: dtoResolved.voucherCode ?? null,
         discount: dtoResolved.discount ?? null,
+        creditDetails,
       });
 
       const savedTransaction = await manager
