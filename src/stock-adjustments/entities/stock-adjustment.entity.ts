@@ -15,7 +15,8 @@ export enum StockAdjustmentReason {
   SHRINKAGE = 'Shrinkage',
   DAMAGES = 'Damages',
   EXPIRED = 'Expired',
-  OTHER = 'Other',
+  RETURNS = 'Returns',
+  EXPANSION = 'Expansion',
 }
 
 @Entity('stock_adjustments')
