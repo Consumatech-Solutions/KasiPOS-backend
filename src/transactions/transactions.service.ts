@@ -49,6 +49,7 @@ export class TransactionsService {
       }
       dtoResolved.customerId = resolved;
     }
+    let isOfflineRequest = false;
     for (let i = 0; i < dtoResolved.items.length; i++) {
       const id = String(dtoResolved.items[i].productId ?? '');
       if (TEMP_ID_PATTERN.test(id)) {
@@ -59,8 +60,11 @@ export class TransactionsService {
           );
         }
         dtoResolved.items[i].productId = resolved;
+        isOfflineRequest = true;
       }
     }
+
+    console.log(isOfflineRequest, 'offline request')
 
     // Validate discount: amount must not exceed cart subtotal; percentage must not exceed 100
     const subtotal = dtoResolved.items.reduce(
@@ -102,8 +106,10 @@ export class TransactionsService {
         }
 
         const currentStock = product.stock ?? 0;
-        const nextStock = currentStock - item.quantity;
-        if (nextStock < 0) {
+        let nextStock = currentStock - item.quantity;
+        
+        if (nextStock < 0 && !isOfflineRequest) {
+          
           throw new BadRequestException(
             `Insufficient stock for ${product.name}`,
           );
