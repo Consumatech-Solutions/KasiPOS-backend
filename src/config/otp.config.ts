@@ -1,8 +1,18 @@
 import { registerAs } from '@nestjs/config';
 
-export default registerAs('otp', () => ({
-  apiUrl: process.env.OTP_API_URL || 'https://otp.ai-mobile.africa/v1/otp',
-  apiKey: process.env.OTP_API_KEY || '',
-  smsSendUrl: process.env.OTP_SMS_SEND_URL || '', // Optional: URL for sending custom SMS (e.g. same provider)
-}));
+function parseCodeLength(raw: string | undefined): number {
+  const n = parseInt(raw || '4', 10);
+  if (!Number.isFinite(n) || n < 4 || n > 8) return 4;
+  return n;
+}
 
+function parseExpiryMinutes(raw: string | undefined): number {
+  const n = parseInt(raw || '10', 10);
+  if (!Number.isFinite(n) || n < 1 || n > 60) return 10;
+  return n;
+}
+
+export default registerAs('otp', () => ({
+  codeLength: parseCodeLength(process.env.OTP_CODE_LENGTH),
+  expiryMinutes: parseExpiryMinutes(process.env.OTP_EXPIRY_MINUTES),
+}));

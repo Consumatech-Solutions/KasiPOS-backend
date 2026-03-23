@@ -1,117 +1,96 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosInstance } from 'axios';
+import { randomInt, timingSafeEqual } from 'crypto';
+import { SmsService } from './sms.service';
 
+type OtpEntry = { code: string; expiresAt: number };
+
+/**
+ * OTP generation and verification using WinSMS for delivery (same HTTP API as {@link SmsService}).
+ * Codes are stored in memory (single process); set OTP_CODE_LENGTH and OTP_EXPIRY_MINUTES via config.
+ */
 @Injectable()
 export class OtpService {
   private readonly logger = new Logger(OtpService.name);
-  private readonly httpClient: AxiosInstance;
-  private readonly apiUrl: string;
-  private readonly apiKey: string;
+  private readonly store = new Map<string, OtpEntry>();
 
-  constructor(private configService: ConfigService) {
-    this.apiUrl = this.configService.get<string>('otp.apiUrl');
-    this.apiKey = this.configService.get<string>('otp.apiKey');
-
-    this.httpClient = axios.create({
-      baseURL: this.apiUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-      },
-      timeout: 10000,
-    });
-  }
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly smsService: SmsService,
+  ) {}
 
   async sendOtp(phoneNumber: string): Promise<{ success: boolean; messageId?: string }> {
-    try {
-      this.logger.log(`Sending OTP to ${phoneNumber}`);
+    const codeLength = this.configService.get<number>('otp.codeLength') ?? 4;
+    const expiryMinutes = this.configService.get<number>('otp.expiryMinutes') ?? 10;
 
-      const formattedPhone = this.formatPhoneNumber(phoneNumber);
+    const code = this.generateNumericOtp(codeLength);
+    const key = this.phoneKey(phoneNumber);
+    const expiresAt = Date.now() + expiryMinutes * 60_000;
 
-      const response = await this.httpClient.post('/generate', {
-        phone: formattedPhone,
-        type: 'numeric',
-        length: 4,
-        countryCode: 'ZA',
-        message: 'Your OTP is {otp} for SOMSA Marketplace.',
-      });
+    this.store.set(key, { code, expiresAt });
 
-      if (response.data.ok === true) {
-        return {
-          success: true,
-          messageId: response.data.expiresAt, // Use expiresAt as identifier if needed
-        };
-      }
+    const message = `Your verification code is ${code}.`;
+    const smsResult = await this.smsService.send(phoneNumber, message);
 
-      throw new HttpException('Failed to send OTP', HttpStatus.BAD_GATEWAY);
-    } catch (error) {
-      this.logger.error(`Error sending OTP: ${error.message}`, error.stack);
-
-      if (error.response) {
-        throw new HttpException(
-          error.response.data?.message || 'Failed to send OTP',
-          error.response.status || HttpStatus.BAD_GATEWAY,
-        );
-      }
-
-      throw new HttpException(
-        'OTP service unavailable',
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
+    if (!smsResult.success) {
+      this.store.delete(key);
+      return { success: false };
     }
-  }
 
-  private formatPhoneNumber(phoneNumber: string): string {
-    let formattedPhone = phoneNumber;
-    if (!formattedPhone.startsWith('+')) {
-      // If phone starts with 0, replace with +27, otherwise add +27
-      if (formattedPhone.startsWith('0')) {
-        formattedPhone = '+27' + formattedPhone.substring(1);
-      } else if (!formattedPhone.startsWith('27')) {
-        formattedPhone = '+27' + formattedPhone;
-      } else {
-        formattedPhone = '+' + formattedPhone;
-      }
-    }
-    return formattedPhone;
+    this.logger.log(`OTP sent via WinSMS to ${this.maskPhone(phoneNumber)}`);
+    return { success: true, messageId: String(expiresAt) };
   }
 
   async verifyOtp(phoneNumber: string, code: string): Promise<boolean> {
+    const key = this.phoneKey(phoneNumber);
+    const entry = this.store.get(key);
+
+    if (!entry) {
+      this.logger.warn(`OTP verify: no pending code for ${this.maskPhone(phoneNumber)}`);
+      return false;
+    }
+
+    if (Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      this.logger.warn(`OTP verify: expired for ${this.maskPhone(phoneNumber)}`);
+      return false;
+    }
+
+    const normalized = code.replace(/\s/g, '');
+    if (!this.codesEqual(normalized, entry.code)) {
+      this.logger.warn(`OTP verify: invalid code for ${this.maskPhone(phoneNumber)}`);
+      return false;
+    }
+
+    this.store.delete(key);
+    this.logger.log(`OTP verified for ${this.maskPhone(phoneNumber)}`);
+    return true;
+  }
+
+  private generateNumericOtp(length: number): string {
+    const max = 10 ** length;
+    return randomInt(0, max).toString().padStart(length, '0');
+  }
+
+  private codesEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
     try {
-      this.logger.log(`Verifying OTP for ${phoneNumber}`);
-
-      const formattedPhone = this.formatPhoneNumber(phoneNumber);
-
-      const response = await this.httpClient.post('/verify', {
-        phone: formattedPhone,
-        otp: code,
-      });
-
-      return response.data.ok === true;
-    } catch (error: any) {
-      if (error.response) {
-        if (error.response.status === 400 || error.response.status === 401) {
-          this.logger.warn(
-            `OTP verification failed for ${phoneNumber}: ${error.response.data?.message || 'Invalid OTP code'}`,
-          );
-          return false; // Invalid code
-        }
-        this.logger.error(
-          `OTP verification error: ${error.response.data?.message || 'Failed to verify OTP'}`,
-        );
-        throw new HttpException(
-          error.response.data?.message || 'Failed to verify OTP',
-          error.response.status || HttpStatus.BAD_GATEWAY,
-        );
-      }
-
-      this.logger.error(`OTP service unavailable: ${error.message}`);
-      throw new HttpException(
-        'OTP service unavailable',
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
+      return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
+    } catch {
+      return false;
     }
   }
-}
 
+  private phoneKey(phoneNumber: string): string {
+    let d = phoneNumber.replace(/\D/g, '');
+    if (d.startsWith('0')) d = '27' + d.slice(1);
+    if (!d.startsWith('27')) d = '27' + d;
+    return d;
+  }
+
+  private maskPhone(phoneNumber: string): string {
+    const digits = phoneNumber.replace(/\D/g, '');
+    if (digits.length < 4) return '***';
+    return digits.slice(0, 3) + '***' + digits.slice(-4);
+  }
+}
