@@ -10,6 +10,7 @@ import {
     Request,
     Query,
     NotFoundException,
+    BadRequestException,
 } from '@nestjs/common';
 import { StoresService } from './stores.service';
 import { CreateStoreDto } from './dto/create-store.dto';
@@ -17,6 +18,9 @@ import { UpdateStoreDto } from './dto/update-store.dto';
 import { AdminCreateStoreDto } from './dto/admin-create-store.dto';
 import { AdminUpdateStoreDto } from './dto/admin-update-store.dto';
 import { AssignStoreDto } from './dto/assign-store.dto';
+import { RoleTransferDto } from './dto/role-transfer.dto';
+import { ChangeStoreAdminDto } from './dto/change-store-admin.dto';
+import { ApproveRoleTransferDto } from './dto/approve-role-transfer.dto';
 import { GetStoresDto } from './dto/get-stores.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -51,6 +55,27 @@ export class StoresController {
             throw new NotFoundException('Store not found for this user');
         }
         return store;
+    }
+
+    @Post('role-transfer')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.STORE_ADMIN)
+    @ApiOperation({
+        summary: 'Request store ownership transfer (store admin only)',
+        description:
+            'Creates a pending role transfer. An admin must approve it via POST /stores/admin/approve-role-transfer. When approved, the staff user becomes store admin/owner and the former admin is demoted or deactivated per oldStoreAdminState; both receive SMS.',
+    })
+    @ApiResponse({ status: 201, description: 'Pending role transfer created' })
+    @ApiResponse({ status: 400, description: 'Invalid staff user or state' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 403, description: 'Forbidden — not store owner or no store' })
+    @ApiResponse({ status: 404, description: 'Store or user not found' })
+    async roleTransfer(@Request() req: any, @Body() dto: RoleTransferDto) {
+        const storeId = req.user?.storeId;
+        if (!storeId) {
+            throw new BadRequestException('Store admin must be linked to a store');
+        }
+        return this.storesService.createPendingRoleTransfer(req.user.id, storeId, dto);
     }
 
     @Get(':id')
@@ -131,6 +156,40 @@ export class StoresController {
     @ApiResponse({ status: 404, description: 'Store not found.' })
     assignStore(@Body() assignStoreDto: AssignStoreDto) {
         return this.storesService.assignStore(assignStoreDto);
+    }
+
+    @Post('admin/change-store-admin')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({
+        summary: 'Change store admin (admin only)',
+        description:
+            'Sets a new store admin. Provide newStoreAdmin.userId OR newStoreAdmin.name + newStoreAdmin.number. The previous store admin becomes a staff user. SMS is sent to both phone numbers.',
+    })
+    @ApiResponse({ status: 200, description: 'Store admin changed' })
+    @ApiResponse({ status: 400, description: 'Invalid payload or phone already exists' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 403, description: 'Forbidden' })
+    @ApiResponse({ status: 404, description: 'Store or user not found' })
+    adminChangeStoreAdmin(@Body() dto: ChangeStoreAdminDto) {
+        return this.storesService.adminChangeStoreAdmin(dto);
+    }
+
+    @Post('admin/approve-role-transfer')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({
+        summary: 'Approve a pending role transfer (admin only)',
+        description:
+            'Sets status to approved and applies ownership transfer. Sends SMS to the new and previous store admin.',
+    })
+    @ApiResponse({ status: 200, description: 'Role transfer approved and applied' })
+    @ApiResponse({ status: 400, description: 'Not pending or store state mismatch' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 403, description: 'Forbidden' })
+    @ApiResponse({ status: 404, description: 'Role transfer not found' })
+    approveRoleTransfer(@Body() dto: ApproveRoleTransferDto) {
+        return this.storesService.approveRoleTransfer(dto);
     }
 
     @Get('admin/list')

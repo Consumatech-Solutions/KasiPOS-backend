@@ -21,6 +21,7 @@ import { ProductTemplate } from './catalogue/product-templates/entities/product-
 import { FilesModule } from './files/files.module';
 import { StoresModule } from './stores/stores.module';
 import { Store } from './stores/entities/store.entity';
+import { RoleTransfer } from './stores/entities/role-transfer.entity';
 import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
 import { TransactionsModule } from './transactions/transactions.module';
@@ -76,7 +77,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
                 password: configService.get<string>('database.password'),
                 database: configService.get<string>('database.database'),
               }),
-          entities: [User, Category, CategoryTemplate, Product, ProductTemplate, Store, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings, TempIdMapping],
+          entities: [User, Category, CategoryTemplate, Product, ProductTemplate, Store, RoleTransfer, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings, TempIdMapping],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
           logging: false, // Disable query logging

@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Store } from './entities/store.entity';
 import { CreateStoreDto } from './dto/create-store.dto';
@@ -9,9 +14,13 @@ import { AdminCreateStoreDto } from './dto/admin-create-store.dto';
 import { AdminUpdateStoreDto } from './dto/admin-update-store.dto';
 import { GetStoresDto } from './dto/get-stores.dto';
 import { AssignStoreDto } from './dto/assign-store.dto';
+import { RoleTransferDto } from './dto/role-transfer.dto';
+import { ChangeStoreAdminDto } from './dto/change-store-admin.dto';
+import { ApproveRoleTransferDto } from './dto/approve-role-transfer.dto';
+import { RoleTransfer } from './entities/role-transfer.entity';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { UsersService } from '../users/users.service';
-import { UserRole } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { SmsService } from '../services/sms.service';
 import { randomBytes } from 'crypto';
@@ -21,6 +30,9 @@ export class StoresService {
     constructor(
         @InjectRepository(Store)
         private storesRepository: Repository<Store>,
+        @InjectRepository(RoleTransfer)
+        private roleTransfersRepository: Repository<RoleTransfer>,
+        private readonly dataSource: DataSource,
         private usersService: UsersService,
         private authService: AuthService,
         private smsService: SmsService,
@@ -65,6 +77,253 @@ export class StoresService {
         const store = await this.findOne(id);
         await this.storesRepository.update(id, updateStoreDto);
         return this.findOne(id);
+    }
+
+    /**
+     * Store admin requests a transfer; saved as pending until an admin approves.
+     */
+    async createPendingRoleTransfer(
+        currentUserId: string,
+        currentUserStoreId: string | null | undefined,
+        dto: RoleTransferDto,
+    ): Promise<RoleTransfer> {
+        if (!currentUserStoreId) {
+            throw new ForbiddenException('Store admin must be linked to a store');
+        }
+        const store = await this.storesRepository.findOne({ where: { id: currentUserStoreId } });
+        if (!store) {
+            throw new NotFoundException('Store not found');
+        }
+        if (store.ownerId !== currentUserId) {
+            throw new ForbiddenException('Only the store owner can request a role transfer');
+        }
+        if (dto.newStoreAdminId === currentUserId) {
+            throw new BadRequestException('Cannot transfer ownership to yourself');
+        }
+
+        const newOwner = await this.usersService.findById(dto.newStoreAdminId);
+        if (!newOwner) {
+            throw new NotFoundException('New store admin user not found');
+        }
+        if (newOwner.storeId !== store.id) {
+            throw new BadRequestException('The selected user is not a staff member of this store');
+        }
+        if (newOwner.role !== UserRole.STAFF) {
+            throw new BadRequestException('The selected user must be a staff member (role: staff)');
+        }
+
+        const pending = this.roleTransfersRepository.create({
+            storeId: store.id,
+            fromUserId: currentUserId,
+            toUserId: dto.newStoreAdminId,
+            oldStoreAdminState: dto.oldStoreAdminState,
+            status: 'pending',
+        });
+        return this.roleTransfersRepository.save(pending);
+    }
+
+    /**
+     * Admin approves a pending role transfer: applies DB changes and notifies both users by SMS.
+     */
+    async approveRoleTransfer(dto: ApproveRoleTransferDto): Promise<{
+        roleTransfer: RoleTransfer;
+        store: Store;
+        newOwner: User;
+        previousOwner: User;
+    }> {
+        const rt = await this.roleTransfersRepository.findOne({
+            where: { id: dto.roleTransferId },
+            relations: ['store'],
+        });
+        if (!rt) {
+            throw new NotFoundException('Role transfer not found');
+        }
+        if (rt.status !== 'pending') {
+            throw new BadRequestException('This role transfer is not pending');
+        }
+
+        const store = await this.storesRepository.findOne({ where: { id: rt.storeId } });
+        if (!store || store.ownerId !== rt.fromUserId) {
+            throw new BadRequestException(
+                'Store ownership no longer matches this request; cannot approve.',
+            );
+        }
+
+        const result = await this.executeRoleTransferTransaction(
+            rt.storeId,
+            rt.fromUserId,
+            rt.toUserId,
+            rt.oldStoreAdminState,
+        );
+
+        rt.status = 'approved';
+        await this.roleTransfersRepository.save(rt);
+
+        await this.sendRoleTransferApprovedSms(result.newOwner, result.previousOwner, store.name);
+
+        return { roleTransfer: rt, ...result };
+    }
+
+    private async executeRoleTransferTransaction(
+        storeId: string,
+        fromUserId: string,
+        toUserId: string,
+        oldStoreAdminState: 'deleted' | 'staff user',
+    ): Promise<{ store: Store; newOwner: User; previousOwner: User }> {
+        return this.dataSource.transaction(async (manager) => {
+            const storeRepo = manager.getRepository(Store);
+            const userRepo = manager.getRepository(User);
+
+            const storeRow = await storeRepo.findOne({ where: { id: storeId } });
+            if (!storeRow) {
+                throw new NotFoundException('Store not found');
+            }
+            const newUserRow = await userRepo.findOne({ where: { id: toUserId } });
+            const oldUserRow = await userRepo.findOne({ where: { id: fromUserId } });
+            if (!newUserRow || !oldUserRow) {
+                throw new NotFoundException('User not found');
+            }
+
+            storeRow.ownerId = newUserRow.id;
+            await storeRepo.save(storeRow);
+
+            newUserRow.role = UserRole.STORE_ADMIN;
+            newUserRow.storeId = storeId;
+            await userRepo.save(newUserRow);
+
+            if (oldStoreAdminState === 'staff user') {
+                oldUserRow.role = UserRole.STAFF;
+                oldUserRow.storeId = storeId;
+                await userRepo.save(oldUserRow);
+            } else {
+                oldUserRow.isActive = false;
+                oldUserRow.storeId = null;
+                await userRepo.save(oldUserRow);
+            }
+
+            return {
+                store: storeRow,
+                newOwner: newUserRow,
+                previousOwner: oldUserRow,
+            };
+        });
+    }
+
+    private async sendRoleTransferApprovedSms(
+        newOwner: User,
+        previousOwner: User,
+        storeName: string,
+    ): Promise<void> {
+        const newMsg = `KasiPOS: You are now the store admin for "${storeName}".`;
+        const oldMsg = `KasiPOS: You are no longer the store admin for "${storeName}".`;
+        if (newOwner.phone) {
+            await this.smsService.send(newOwner.phone, newMsg).catch(() => {});
+        }
+        if (previousOwner.phone) {
+            await this.smsService.send(previousOwner.phone, oldMsg).catch(() => {});
+        }
+    }
+
+    /**
+     * Admin: change store admin. Old admin becomes staff; new admin by userId or new user by name+phone.
+     */
+    async adminChangeStoreAdmin(dto: ChangeStoreAdminDto): Promise<{
+        store: Store;
+        newOwner: User;
+        previousOwner: User;
+    }> {
+        const { newStoreAdmin } = dto;
+        const hasUserId = !!newStoreAdmin.userId;
+        const hasNameNumber = !!(newStoreAdmin.name && newStoreAdmin.number);
+        if (hasUserId === hasNameNumber) {
+            throw new BadRequestException(
+                'Provide exactly one of: newStoreAdmin.userId OR newStoreAdmin.name and newStoreAdmin.number',
+            );
+        }
+
+        const store = await this.findOne(dto.store);
+        if (!store.ownerId) {
+            throw new BadRequestException('Store has no owner to replace');
+        }
+
+        const oldOwner = await this.usersService.findById(store.ownerId);
+        if (!oldOwner) {
+            throw new NotFoundException('Current store admin not found');
+        }
+
+        let newOwner: User;
+        if (hasUserId) {
+            const u = await this.usersService.findById(newStoreAdmin.userId!);
+            if (!u) {
+                throw new NotFoundException('New store admin user not found');
+            }
+            if (u.id === oldOwner.id) {
+                throw new BadRequestException('New store admin must be a different user');
+            }
+            newOwner = u;
+        } else {
+            const existing = await this.usersService.findByPhone(newStoreAdmin.number!);
+            if (existing) {
+                throw new BadRequestException('A user with this phone number already exists.');
+            }
+            const tempPassword = randomBytes(8).toString('base64').replace(/[+/=]/g, '').slice(0, 10);
+            const email = `storeadmin-${store.id}-${Date.now()}@kasipos.local`;
+            newOwner = await this.usersService.createWithPassword({
+                email,
+                name: newStoreAdmin.name!,
+                phone: newStoreAdmin.number!,
+                role: UserRole.STORE_ADMIN,
+                storeId: store.id,
+                password: tempPassword,
+            });
+            const resetToken = await this.authService.createStoreAdminResetToken(newOwner.id);
+            const userAppUrl =
+                this.configService.get<string>('FRONTEND_URL_SMS')?.split(',')[0]?.trim() ||
+                'http://localhost:9002';
+            const resetLink = `${userAppUrl}/set-password-store-admin?token=${resetToken}`;
+            await this.smsService
+                .send(
+                    newStoreAdmin.number!,
+                    `KasiPOS: Temporary password ${tempPassword}. Set your password: ${resetLink}`,
+                )
+                .catch(() => {});
+        }
+
+        const result = await this.dataSource.transaction(async (manager) => {
+            const storeRepo = manager.getRepository(Store);
+            const userRepo = manager.getRepository(User);
+
+            const storeRow = await storeRepo.findOne({ where: { id: store.id } });
+            const oldRow = await userRepo.findOne({ where: { id: oldOwner.id } });
+            const newRow = await userRepo.findOne({ where: { id: newOwner.id } });
+            if (!storeRow || !oldRow || !newRow) {
+                throw new NotFoundException('Store or user not found');
+            }
+
+            oldRow.role = UserRole.STAFF;
+            oldRow.storeId = store.id;
+            await userRepo.save(oldRow);
+
+            newRow.role = UserRole.STORE_ADMIN;
+            newRow.storeId = store.id;
+            await userRepo.save(newRow);
+
+            storeRow.ownerId = newRow.id;
+            await storeRepo.save(storeRow);
+
+            return { store: storeRow, newOwner: newRow, previousOwner: oldRow };
+        });
+
+        const newMsg = `KasiPOS: You have been set as the new store admin for "${store.name}".`;
+        const oldMsg = `KasiPOS: You are no longer the store admin for "${store.name}". You remain a staff user for this store.`;
+        if (result.newOwner.phone) {
+            await this.smsService.send(result.newOwner.phone, newMsg).catch(() => {});
+        }
+        if (result.previousOwner.phone) {
+            await this.smsService.send(result.previousOwner.phone, oldMsg).catch(() => {});
+        }
+
+        return result;
     }
 
     // ==================== Admin-Only Methods ====================
