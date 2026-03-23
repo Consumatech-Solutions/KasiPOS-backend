@@ -34,7 +34,7 @@ export class OtpService {
         type: 'numeric',
         length: 4,
         countryCode: 'ZA',
-        message: 'Your OTP is {otp} for SOMSA Marketplace.',
+        message: 'Your OTP is {otp} for KasiPOS.',
       });
 
       if (response.data.ok === true) {

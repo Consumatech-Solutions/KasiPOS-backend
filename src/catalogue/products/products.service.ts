@@ -48,6 +48,15 @@ export class ProductsService {
       throw new NotFoundException('Category not found');
     }
 
+    const existingProduct = await this.productsRepository.findOne({
+      where: {
+        name: createProductDto.name,
+        storeId: storeId
+      }
+    })
+
+    if(existingProduct) return existingProduct;
+
     const product = this.productsRepository.create({
       ...dto,
       category,
