@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Store } from './entities/store.entity';
 import { CreateStoreDto } from './dto/create-store.dto';
@@ -9,9 +14,10 @@ import { AdminCreateStoreDto } from './dto/admin-create-store.dto';
 import { AdminUpdateStoreDto } from './dto/admin-update-store.dto';
 import { GetStoresDto } from './dto/get-stores.dto';
 import { AssignStoreDto } from './dto/assign-store.dto';
+import { RoleTransferDto } from './dto/role-transfer.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { UsersService } from '../users/users.service';
-import { UserRole } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { SmsService } from '../services/sms.service';
 import { randomBytes } from 'crypto';
@@ -21,6 +27,7 @@ export class StoresService {
     constructor(
         @InjectRepository(Store)
         private storesRepository: Repository<Store>,
+        private readonly dataSource: DataSource,
         private usersService: UsersService,
         private authService: AuthService,
         private smsService: SmsService,
@@ -65,6 +72,83 @@ export class StoresService {
         const store = await this.findOne(id);
         await this.storesRepository.update(id, updateStoreDto);
         return this.findOne(id);
+    }
+
+    /**
+     * Store admin (current store owner) transfers ownership to a staff user in the same store.
+     */
+    async roleTransfer(
+        currentUserId: string,
+        currentUserStoreId: string | null | undefined,
+        dto: RoleTransferDto,
+    ): Promise<{ store: Store; newOwner: User; previousOwner: User }> {
+        if (!currentUserStoreId) {
+            throw new ForbiddenException('Store admin must be linked to a store');
+        }
+        const store = await this.storesRepository.findOne({ where: { id: currentUserStoreId } });
+        if (!store) {
+            throw new NotFoundException('Store not found');
+        }
+        if (store.ownerId !== currentUserId) {
+            throw new ForbiddenException('Only the store owner can transfer ownership');
+        }
+        if (dto.newStoreAdminId === currentUserId) {
+            throw new BadRequestException('Cannot transfer ownership to yourself');
+        }
+
+        const newOwner = await this.usersService.findById(dto.newStoreAdminId);
+        if (!newOwner) {
+            throw new NotFoundException('New store admin user not found');
+        }
+        if (newOwner.storeId !== store.id) {
+            throw new BadRequestException('The selected user is not a staff member of this store');
+        }
+        if (newOwner.role !== UserRole.STAFF) {
+            throw new BadRequestException('The selected user must be a staff member (role: staff)');
+        }
+
+        const previousOwner = await this.usersService.findById(currentUserId);
+        if (!previousOwner) {
+            throw new NotFoundException('Current user not found');
+        }
+
+        return this.dataSource.transaction(async (manager) => {
+            const storeRepo = manager.getRepository(Store);
+            const userRepo = manager.getRepository(User);
+
+            const storeRow = await storeRepo.findOne({ where: { id: store.id } });
+            if (!storeRow) {
+                throw new NotFoundException('Store not found');
+            }
+            const newUserRow = await userRepo.findOne({ where: { id: dto.newStoreAdminId } });
+            const oldUserRow = await userRepo.findOne({ where: { id: currentUserId } });
+            if (!newUserRow || !oldUserRow) {
+                throw new NotFoundException('User not found');
+            }
+
+            storeRow.ownerId = newUserRow.id;
+            await storeRepo.save(storeRow);
+
+            newUserRow.role = UserRole.STORE_ADMIN;
+            newUserRow.storeId = store.id;
+            await userRepo.save(newUserRow);
+
+            if (dto.oldStoreAdminState === 'staff user') {
+                oldUserRow.role = UserRole.STAFF;
+                oldUserRow.storeId = store.id;
+                await userRepo.save(oldUserRow);
+            } else {
+                oldUserRow.isActive = false;
+                oldUserRow.storeId = null;
+                await userRepo.save(oldUserRow);
+            }
+
+            return {
+                store: storeRow,
+                newOwner: newUserRow,
+                previousOwner: oldUserRow,
+            };
+        });
     }
 
     // ==================== Admin-Only Methods ====================

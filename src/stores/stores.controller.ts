@@ -10,6 +10,7 @@ import {
     Request,
     Query,
     NotFoundException,
+    BadRequestException,
 } from '@nestjs/common';
 import { StoresService } from './stores.service';
 import { CreateStoreDto } from './dto/create-store.dto';
@@ -17,6 +18,7 @@ import { UpdateStoreDto } from './dto/update-store.dto';
 import { AdminCreateStoreDto } from './dto/admin-create-store.dto';
 import { AdminUpdateStoreDto } from './dto/admin-update-store.dto';
 import { AssignStoreDto } from './dto/assign-store.dto';
+import { RoleTransferDto } from './dto/role-transfer.dto';
 import { GetStoresDto } from './dto/get-stores.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -51,6 +53,27 @@ export class StoresController {
             throw new NotFoundException('Store not found for this user');
         }
         return store;
+    }
+
+    @Post('role-transfer')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.STORE_ADMIN)
+    @ApiOperation({
+        summary: 'Transfer store ownership to a staff user (store admin only)',
+        description:
+            'The current store owner becomes staff (if oldStoreAdminState is "staff user") or is deactivated and unlinked from the store (if "deleted"). The designated staff user becomes store admin and store owner.',
+    })
+    @ApiResponse({ status: 200, description: 'Ownership transferred' })
+    @ApiResponse({ status: 400, description: 'Invalid staff user or state' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 403, description: 'Forbidden — not store owner or no store' })
+    @ApiResponse({ status: 404, description: 'Store or user not found' })
+    async roleTransfer(@Request() req: any, @Body() dto: RoleTransferDto) {
+        const storeId = req.user?.storeId;
+        if (!storeId) {
+            throw new BadRequestException('Store admin must be linked to a store');
+        }
+        return this.storesService.roleTransfer(req.user.id, storeId, dto);
     }
 
     @Get(':id')
