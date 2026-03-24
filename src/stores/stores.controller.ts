@@ -59,7 +59,7 @@ export class StoresController {
 
     @Post('role-transfer')
     @UseGuards(RolesGuard)
-    @Roles(UserRole.STORE_ADMIN)
+    @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
     @ApiOperation({
         summary: 'Request store ownership transfer (store admin only)',
         description:

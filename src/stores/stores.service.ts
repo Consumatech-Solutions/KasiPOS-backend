@@ -119,7 +119,9 @@ export class StoresService {
             oldStoreAdminState: dto.oldStoreAdminState,
             status: 'pending',
         });
-        return this.roleTransfersRepository.save(pending);
+        const saved = await this.roleTransfersRepository.save(pending);
+        await this.approveRoleTransfer({ roleTransferId: saved.id });
+        return saved;
     }
 
     /**
