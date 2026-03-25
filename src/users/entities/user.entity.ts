@@ -45,6 +45,10 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  /** Incremented to invalidate all issued JWT access tokens for this user. */
+  @Column({ name: 'token_version', default: 0 })
+  tokenVersion: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

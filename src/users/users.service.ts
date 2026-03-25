@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -27,6 +27,7 @@ export class UsersService {
         'createdAt',
         'updatedAt',
         'passwordHash',
+        'tokenVersion',
       ],
     });
   }
@@ -45,6 +46,7 @@ export class UsersService {
         'createdAt',
         'updatedAt',
         'passwordHash',
+        'tokenVersion',
       ],
     });
   }
@@ -82,6 +84,13 @@ export class UsersService {
 
     Object.assign(user, updateUserDto);
     return this.usersRepository.save(user);
+  }
+
+  /** Bumps JWT access-token version so existing tokens fail validation. */
+  async incrementTokenVersionForUsers(userIds: string[]): Promise<void> {
+    const unique = [...new Set(userIds.filter(Boolean))];
+    if (unique.length === 0) return;
+    await this.usersRepository.increment({ id: In(unique) }, 'tokenVersion', 1);
   }
 
   async findAll(
