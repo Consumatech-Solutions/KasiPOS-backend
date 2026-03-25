@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
@@ -24,4 +24,13 @@ export class GetProductsDto extends PaginationDto {
     @IsOptional()
     @IsString()
     updatedAtAfter?: string;
+
+    @ApiPropertyOptional({
+        description: 'Sort by product name: asc (A-Z) or desc (Z-A)',
+        enum: ['asc', 'desc'],
+    })
+    @IsOptional()
+    @IsString()
+    @IsIn(['asc', 'desc'])
+    sortByName?: 'asc' | 'desc';
 }

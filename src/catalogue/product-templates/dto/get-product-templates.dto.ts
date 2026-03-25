@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
@@ -23,4 +23,13 @@ export class GetProductTemplatesDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   storeId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Sort by template name: asc (A-Z) or desc (Z-A)',
+    enum: ['asc', 'desc'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sortByName?: 'asc' | 'desc';
 }

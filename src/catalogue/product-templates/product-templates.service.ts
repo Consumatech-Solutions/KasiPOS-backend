@@ -77,7 +77,7 @@ export class ProductTemplatesService {
   async findAll(
     query: GetProductTemplatesDto,
   ): Promise<PaginationResult<ProductTemplate>> {
-    const { page = 1, limit = 10, search, categoryTemplateId, storeId } = query;
+    const { page = 1, limit = 10, search, categoryTemplateId, storeId, sortByName } = query;
 
     // If storeId is provided, find templates that are NOT already assigned to that store
     let excludedTemplateIds: string[] = [];
@@ -122,7 +122,9 @@ export class ProductTemplatesService {
     const [data, total] = await this.productTemplatesRepository.findAndCount({
       where: whereClause,
       relations: ['categoryTemplate', 'brand'],
-      order: { createdAt: 'DESC' },
+      order: sortByName
+        ? { name: sortByName.toUpperCase() as 'ASC' | 'DESC' }
+        : { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });

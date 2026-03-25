@@ -66,6 +66,12 @@ export class ProductTemplatesController {
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'categoryTemplateId', required: false, type: String })
   @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Filter templates not yet assigned to this store' })
+  @ApiQuery({
+    name: 'sortByName',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort by template name: asc (A-Z) or desc (Z-A)',
+  })
   @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })

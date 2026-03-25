@@ -16,7 +16,6 @@ import { GetStoresDto } from './dto/get-stores.dto';
 import { AssignStoreDto } from './dto/assign-store.dto';
 import { RoleTransferDto } from './dto/role-transfer.dto';
 import { ChangeStoreAdminDto } from './dto/change-store-admin.dto';
-import { ApproveRoleTransferDto } from './dto/approve-role-transfer.dto';
 import { RoleTransfer } from './entities/role-transfer.entity';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { UsersService } from '../users/users.service';
@@ -80,9 +79,9 @@ export class StoresService {
     }
 
     /**
-     * Store admin requests a transfer; saved as pending until an admin approves.
+     * Store admin transfers ownership immediately, then records transfer as completed.
      */
-    async createPendingRoleTransfer(
+    async createRoleTransfer(
         currentUserId: string,
         currentUserStoreId: string | null | undefined,
         dto: RoleTransferDto,
@@ -112,58 +111,30 @@ export class StoresService {
             throw new BadRequestException('The selected user must be a staff member (role: staff)');
         }
 
-        const pending = this.roleTransfersRepository.create({
+        const result = await this.executeRoleTransferTransaction(
+            store.id,
+            currentUserId,
+            dto.newStoreAdminId,
+            dto.oldStoreAdminState,
+        );
+
+        const completed = this.roleTransfersRepository.create({
             storeId: store.id,
             fromUserId: currentUserId,
             toUserId: dto.newStoreAdminId,
             oldStoreAdminState: dto.oldStoreAdminState,
-            status: 'pending',
+            status: 'completed',
         });
-        const saved = await this.roleTransfersRepository.save(pending);
-        await this.approveRoleTransfer({ roleTransferId: saved.id });
-        return saved;
-    }
-
-    /**
-     * Admin approves a pending role transfer: applies DB changes and notifies both users by SMS.
-     */
-    async approveRoleTransfer(dto: ApproveRoleTransferDto): Promise<{
-        roleTransfer: RoleTransfer;
-        store: Store;
-        newOwner: User;
-        previousOwner: User;
-    }> {
-        const rt = await this.roleTransfersRepository.findOne({
-            where: { id: dto.roleTransferId },
-            relations: ['store'],
-        });
-        if (!rt) {
-            throw new NotFoundException('Role transfer not found');
-        }
-        if (rt.status !== 'pending') {
-            throw new BadRequestException('This role transfer is not pending');
-        }
-
-        const store = await this.storesRepository.findOne({ where: { id: rt.storeId } });
-        if (!store || store.ownerId !== rt.fromUserId) {
-            throw new BadRequestException(
-                'Store ownership no longer matches this request; cannot approve.',
-            );
-        }
-
-        const result = await this.executeRoleTransferTransaction(
-            rt.storeId,
-            rt.fromUserId,
-            rt.toUserId,
-            rt.oldStoreAdminState,
-        );
-
-        rt.status = 'approved';
-        await this.roleTransfersRepository.save(rt);
+        const saved = await this.roleTransfersRepository.save(completed);
 
         await this.sendRoleTransferApprovedSms(result.newOwner, result.previousOwner, store.name);
 
-        return { roleTransfer: rt, ...result };
+        await this.authService.invalidateAccessTokensForUsers([
+            currentUserId,
+            dto.newStoreAdminId,
+        ]);
+
+        return saved;
     }
 
     private async executeRoleTransferTransaction(
@@ -324,6 +295,11 @@ export class StoresService {
         if (result.previousOwner.phone) {
             await this.smsService.send(result.previousOwner.phone, oldMsg).catch(() => {});
         }
+
+        await this.authService.invalidateAccessTokensForUsers([
+            result.previousOwner.id,
+            result.newOwner.id,
+        ]);
 
         return result;
     }
