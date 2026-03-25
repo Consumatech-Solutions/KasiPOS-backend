@@ -163,6 +163,11 @@ export class StoresService {
 
         await this.sendRoleTransferApprovedSms(result.newOwner, result.previousOwner, store.name);
 
+        await this.authService.invalidateAccessTokensForUsers([
+            rt.fromUserId,
+            rt.toUserId,
+        ]);
+
         return { roleTransfer: rt, ...result };
     }
 
@@ -324,6 +329,11 @@ export class StoresService {
         if (result.previousOwner.phone) {
             await this.smsService.send(result.previousOwner.phone, oldMsg).catch(() => {});
         }
+
+        await this.authService.invalidateAccessTokensForUsers([
+            result.previousOwner.id,
+            result.newOwner.id,
+        ]);
 
         return result;
     }

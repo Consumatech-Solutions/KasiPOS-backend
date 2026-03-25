@@ -242,12 +242,28 @@ export class AuthService {
     };
   }
 
-  async validateUser(userId: string): Promise<User> {
+  /**
+   * Validates user for JWT access. `accessTokenVersion` comes from JWT claim `tv` (omitted in older tokens = 0).
+   */
+  async validateUser(
+    userId: string,
+    accessTokenVersion?: number,
+  ): Promise<User> {
     const user = await this.usersService.findById(userId);
     if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found or inactive');
     }
+    const current = user.tokenVersion ?? 0;
+    const fromToken = accessTokenVersion ?? 0;
+    if (current !== fromToken) {
+      throw new UnauthorizedException('Session expired. Please sign in again.');
+    }
     return user;
+  }
+
+  /** Invalidate all access JWTs for the given users (e.g. after store admin / role changes). */
+  async invalidateAccessTokensForUsers(userIds: string[]): Promise<void> {
+    await this.usersService.incrementTokenVersionForUsers(userIds);
   }
 
   private generateAccessToken(user: User): string {
@@ -257,6 +273,7 @@ export class AuthService {
       phone: user.phone,
       role: user.role,
       storeId: user.storeId,
+      tv: user.tokenVersion ?? 0,
     };
     return this.jwtService.sign(payload);
   }
