@@ -93,7 +93,15 @@ export class VouchersController {
   async findAll(@Query() query: GetVouchersDto, @Request() req) {
     const storeId = req.user?.storeId;
     if (!storeId) {
-      throw new Error('User does not have an associated store');
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+        },
+      }
     }
     return this.vouchersService.findAll(query, storeId);
   }
