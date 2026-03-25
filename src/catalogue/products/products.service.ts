@@ -70,7 +70,7 @@ export class ProductsService {
   }
 
   async findAll(query: GetProductsDto, storeId: string): Promise<PaginationResult<Product>> {
-    const { page = 1, limit = 10, search, categoryId, updatedAtAfter } = query;
+    const { page = 1, limit = 10, search, categoryId, updatedAtAfter, sortByName } = query;
 
     const where: any = {};
 
@@ -97,7 +97,9 @@ export class ProductsService {
     const [data, total] = await this.productsRepository.findAndCount({
       where: whereClause,
       relations: ['category', 'brand', 'store'],
-      order: { createdAt: 'DESC' },
+      order: sortByName
+        ? { name: sortByName.toUpperCase() as 'ASC' | 'DESC' }
+        : { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -178,7 +180,7 @@ export class ProductsService {
   }
 
   async adminFindAll(query: GetProductsDto): Promise<PaginationResult<Product>> {
-    const { page = 1, limit = 10, search, categoryId } = query;
+    const { page = 1, limit = 10, search, categoryId, sortByName } = query;
 
     const queryBuilder = this.productsRepository.createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
@@ -197,7 +199,10 @@ export class ProductsService {
     }
 
     queryBuilder
-      .orderBy('product.createdAt', 'DESC')
+      .orderBy(
+        sortByName ? 'product.name' : 'product.createdAt',
+        sortByName ? (sortByName.toUpperCase() as 'ASC' | 'DESC') : 'DESC',
+      )
       .skip((page - 1) * limit)
       .take(limit);
 

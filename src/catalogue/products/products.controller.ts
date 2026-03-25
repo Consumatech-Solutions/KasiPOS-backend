@@ -136,6 +136,12 @@ export class ProductsController {
     type: String,
     description: 'Filter by category ID',
   })
+  @ApiQuery({
+    name: 'sortByName',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort by product name: asc (A-Z) or desc (Z-A)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Products retrieved successfully',
@@ -372,6 +378,12 @@ export class ProductsController {
     required: false,
     type: String,
     description: 'Filter by category ID',
+  })
+  @ApiQuery({
+    name: 'sortByName',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort by product name: asc (A-Z) or desc (Z-A)',
   })
   @ApiResponse({
     status: 200,

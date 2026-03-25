@@ -10,7 +10,7 @@ import {
 import { Store } from './store.entity';
 import { User } from '../../users/entities/user.entity';
 
-export type RoleTransferStatus = 'pending' | 'approved';
+export type RoleTransferStatus = 'completed';
 
 @Entity('role_transfers')
 export class RoleTransfer {
@@ -32,7 +32,7 @@ export class RoleTransfer {
   @JoinColumn({ name: 'from_user_id' })
   fromUser: User;
 
-  /** Staff user who will become store admin when approved */
+  /** Staff user who becomes store admin when transfer is completed */
   @Column({ name: 'to_user_id' })
   toUserId: string;
 
@@ -43,7 +43,7 @@ export class RoleTransfer {
   @Column({ name: 'old_store_admin_state', type: 'varchar' })
   oldStoreAdminState: 'deleted' | 'staff user';
 
-  @Column({ type: 'varchar', default: 'pending' })
+  @Column({ type: 'varchar', default: 'completed' })
   status: RoleTransferStatus;
 
   @CreateDateColumn({ name: 'created_at' })

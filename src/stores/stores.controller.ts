@@ -20,7 +20,6 @@ import { AdminUpdateStoreDto } from './dto/admin-update-store.dto';
 import { AssignStoreDto } from './dto/assign-store.dto';
 import { RoleTransferDto } from './dto/role-transfer.dto';
 import { ChangeStoreAdminDto } from './dto/change-store-admin.dto';
-import { ApproveRoleTransferDto } from './dto/approve-role-transfer.dto';
 import { GetStoresDto } from './dto/get-stores.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -61,11 +60,11 @@ export class StoresController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
     @ApiOperation({
-        summary: 'Request store ownership transfer (store admin only)',
+        summary: 'Transfer store ownership (store admin only)',
         description:
-            'Creates a pending role transfer. An admin must approve it via POST /stores/admin/approve-role-transfer. When approved, the staff user becomes store admin/owner and the former admin is demoted or deactivated per oldStoreAdminState; both receive SMS.',
+            'Applies role transfer immediately. The staff user becomes store admin/owner and the former admin is demoted or deactivated per oldStoreAdminState; both receive SMS.',
     })
-    @ApiResponse({ status: 201, description: 'Pending role transfer created' })
+    @ApiResponse({ status: 201, description: 'Role transfer completed' })
     @ApiResponse({ status: 400, description: 'Invalid staff user or state' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     @ApiResponse({ status: 403, description: 'Forbidden — not store owner or no store' })
@@ -75,7 +74,7 @@ export class StoresController {
         if (!storeId) {
             throw new BadRequestException('Store admin must be linked to a store');
         }
-        return this.storesService.createPendingRoleTransfer(req.user.id, storeId, dto);
+        return this.storesService.createRoleTransfer(req.user.id, storeId, dto);
     }
 
     @Get(':id')
@@ -173,23 +172,6 @@ export class StoresController {
     @ApiResponse({ status: 404, description: 'Store or user not found' })
     adminChangeStoreAdmin(@Body() dto: ChangeStoreAdminDto) {
         return this.storesService.adminChangeStoreAdmin(dto);
-    }
-
-    @Post('admin/approve-role-transfer')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.ADMIN)
-    @ApiOperation({
-        summary: 'Approve a pending role transfer (admin only)',
-        description:
-            'Sets status to approved and applies ownership transfer. Sends SMS to the new and previous store admin.',
-    })
-    @ApiResponse({ status: 200, description: 'Role transfer approved and applied' })
-    @ApiResponse({ status: 400, description: 'Not pending or store state mismatch' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
-    @ApiResponse({ status: 403, description: 'Forbidden' })
-    @ApiResponse({ status: 404, description: 'Role transfer not found' })
-    approveRoleTransfer(@Body() dto: ApproveRoleTransferDto) {
-        return this.storesService.approveRoleTransfer(dto);
     }
 
     @Get('admin/list')
