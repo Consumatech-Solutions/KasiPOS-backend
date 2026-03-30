@@ -125,7 +125,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    user.isActive = false;
-    await this.usersRepository.save(user);
+    await this.usersRepository.update({ id }, { isActive: false });
+    await this.usersRepository.softDelete({ id });
   }
 }

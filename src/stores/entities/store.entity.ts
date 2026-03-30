@@ -6,6 +6,7 @@ import {
     UpdateDateColumn,
     ManyToOne,
     JoinColumn,
+    DeleteDateColumn,
 } from 'typeorm';
 import { Client } from '../../clients/entities/client.entity';
 
@@ -120,4 +121,7 @@ export class Store {
 
     @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
+
+    @DeleteDateColumn({ name: 'deleted_at' })
+    deletedAt: Date | null;
 }

@@ -22,7 +22,9 @@ export class ClientsService {
   async findAll(query: GetClientsDto): Promise<PaginationResult<Client>> {
     const { page = 1, limit = 10, search, type } = query;
 
-    const queryBuilder = this.clientsRepository.createQueryBuilder('client');
+    const queryBuilder = this.clientsRepository
+      .createQueryBuilder('client')
+      .andWhere('client.deletedAt IS NULL');
 
     if (search) {
       queryBuilder.andWhere(
@@ -71,6 +73,6 @@ export class ClientsService {
 
   async remove(id: string): Promise<void> {
     const client = await this.findOne(id);
-    await this.clientsRepository.remove(client);
+    await this.clientsRepository.softRemove(client);
   }
 }

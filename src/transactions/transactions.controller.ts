@@ -22,6 +22,7 @@ import { TempIdResolveInterceptor } from '../common/interceptors/temp-id-resolve
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { TransactionsService } from './transactions.service';
+import { CreateTransactionResult } from './types/create-transaction-result.type';
 
 @ApiTags('Transactions')
 @Controller('transactions')
@@ -32,9 +33,17 @@ export class TransactionsController {
 
   @Post()
   @UseInterceptors(TempIdResolveInterceptor)
-  @ApiOperation({ summary: 'Create a transaction (sale)' })
-  @ApiResponse({ status: 201, description: 'Transaction created successfully' })
-  async create(@Body() dto: CreateTransactionDto) {
+  @ApiOperation({
+    summary: 'Create a transaction (sale)',
+    description:
+      'If temp customer/product IDs are not yet synced, responds with status "pending" and pendingTransactionId (stored until sync), or status "committed" with the saved transaction.',
+  })
+  @ApiResponse({
+    status: 201,
+    description:
+      '{ status: "committed", transaction } or { status: "pending", pendingTransactionId }',
+  })
+  async create(@Body() dto: CreateTransactionDto): Promise<CreateTransactionResult> {
     return this.transactionsService.create(dto);
   }
 

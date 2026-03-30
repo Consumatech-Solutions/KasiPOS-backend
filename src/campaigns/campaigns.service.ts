@@ -37,6 +37,6 @@ export class CampaignsService {
 
     async remove(id: string): Promise<void> {
         const campaign = await this.findOne(id);
-        await this.campaignRepository.remove(campaign);
+        await this.campaignRepository.softRemove(campaign);
     }
 }

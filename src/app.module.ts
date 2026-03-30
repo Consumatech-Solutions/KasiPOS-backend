@@ -26,6 +26,7 @@ import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
 import { TransactionsModule } from './transactions/transactions.module';
 import { Transaction } from './transactions/entities/transaction.entity';
+import { PendingTransaction } from './transactions/entities/pending-transaction.entity';
 import { StockAdjustmentsModule } from './stock-adjustments/stock-adjustments.module';
 import { StockAdjustment } from './stock-adjustments/entities/stock-adjustment.entity';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
@@ -77,7 +78,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
                 password: configService.get<string>('database.password'),
                 database: configService.get<string>('database.database'),
               }),
-          entities: [User, Category, CategoryTemplate, Product, ProductTemplate, Store, RoleTransfer, Customer, Transaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings, TempIdMapping],
+          entities: [User, Category, CategoryTemplate, Product, ProductTemplate, Store, RoleTransfer, Customer, Transaction, PendingTransaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings, TempIdMapping],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
           logging: false, // Disable query logging

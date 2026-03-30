@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Store } from '../../stores/entities/store.entity';
 
@@ -16,7 +17,7 @@ export enum VoucherType {
 }
 
 @Entity('vouchers')
-@Index(['storeId', 'code'], { unique: true })
+@Index(['storeId', 'code'])
 export class Voucher {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -66,4 +67,7 @@ export class Voucher {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt: Date | null;
 }

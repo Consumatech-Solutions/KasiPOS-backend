@@ -8,12 +8,13 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
 import { Store } from '../../../stores/entities/store.entity';
 
 @Entity('categories')
-@Index(['storeId', 'name'], { unique: true })
+@Index(['storeId', 'name'])
 export class Category {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -33,6 +34,9 @@ export class Category {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt: Date | null;
 
   @OneToMany(() => Product, (product) => product.category)
   products: Product[];

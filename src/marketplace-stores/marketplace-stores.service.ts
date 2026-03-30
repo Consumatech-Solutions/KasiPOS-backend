@@ -86,6 +86,6 @@ export class MarketplaceStoresService {
 
   async remove(id: string): Promise<void> {
     const store = await this.findOne(id);
-    await this.marketplaceStoresRepository.remove(store);
+    await this.marketplaceStoresRepository.softRemove(store);
   }
 }

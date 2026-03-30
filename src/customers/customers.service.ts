@@ -8,6 +8,7 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { GetCustomersDto } from './dto/get-customers.dto';
 import { WelcomeSmsService } from '../services/welcome-sms.service';
+import { PendingTransactionSyncService } from '../transactions/pending-transaction-sync.service';
 
 @Injectable()
 export class CustomersService {
@@ -18,6 +19,7 @@ export class CustomersService {
     private customersRepository: Repository<Customer>,
     private tempIdMappingsService: TempIdMappingsService,
     private welcomeSmsService: WelcomeSmsService,
+    private pendingTransactionSyncService: PendingTransactionSyncService,
   ) {}
 
   async create(
@@ -37,6 +39,11 @@ export class CustomersService {
     const saved = await this.customersRepository.save(customer);
     if (_tempId) {
       await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'customer');
+      await this.pendingTransactionSyncService.onCustomerMapped(
+        _tempId,
+        saved.id,
+        saved.storeId,
+      );
     }
     // Send welcome SMS (non-blocking: do not fail customer creation if SMS fails)
     if (saved.contact?.trim()) {
@@ -115,6 +122,6 @@ export class CustomersService {
 
   async remove(id: string, storeId?: string): Promise<void> {
     const customer = await this.findOne(id, storeId);
-    await this.customersRepository.remove(customer);
+    await this.customersRepository.softRemove(customer);
   }
 }

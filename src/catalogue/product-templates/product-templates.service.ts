@@ -235,7 +235,7 @@ export class ProductTemplatesService {
 
   async remove(id: string): Promise<void> {
     const template = await this.findOne(id);
-    await this.productTemplatesRepository.remove(template);
+    await this.productTemplatesRepository.softRemove(template);
   }
 
   async assignToStore(

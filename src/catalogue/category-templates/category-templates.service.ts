@@ -82,6 +82,6 @@ export class CategoryTemplatesService {
 
   async remove(id: string): Promise<void> {
     const template = await this.findOne(id);
-    await this.categoryTemplatesRepository.remove(template);
+    await this.categoryTemplatesRepository.softRemove(template);
   }
 }

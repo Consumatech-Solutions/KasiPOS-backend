@@ -22,7 +22,9 @@ export class BrandsService {
   async findAll(query: GetBrandsDto): Promise<PaginationResult<Brand>> {
     const { page = 1, limit = 10, search } = query;
 
-    const queryBuilder = this.brandsRepository.createQueryBuilder('brand');
+    const queryBuilder = this.brandsRepository
+      .createQueryBuilder('brand')
+      .andWhere('brand.deletedAt IS NULL');
 
     if (search) {
       queryBuilder.andWhere('brand.name ILIKE :search', { search: `%${search}%` });
@@ -64,6 +66,6 @@ export class BrandsService {
 
   async remove(id: string): Promise<void> {
     const brand = await this.findOne(id);
-    await this.brandsRepository.remove(brand);
+    await this.brandsRepository.softRemove(brand);
   }
 }

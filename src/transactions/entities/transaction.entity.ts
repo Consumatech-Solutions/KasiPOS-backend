@@ -44,6 +44,10 @@ export class Transaction {
   @JoinColumn({ name: 'customer_id' })
   customer: Customer | null;
 
+  /** Set when sale used a temp customer id before sync; cleared when customer is mapped. */
+  @Column({ name: 'pending_customer_temp_id', nullable: true })
+  pendingCustomerTempId: string | null;
+
   @Column({ type: 'jsonb' })
   items: TransactionItemPayload[];
 

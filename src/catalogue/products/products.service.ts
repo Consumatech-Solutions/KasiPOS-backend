@@ -16,6 +16,7 @@ import { ProductTemplate } from '../product-templates/entities/product-template.
 import { CategoryTemplate } from '../category-templates/entities/category-template.entity';
 import { PaginationResult } from '../../common/dto/pagination.dto';
 import { ILike, MoreThan } from 'typeorm';
+import { PendingTransactionSyncService } from '../../transactions/pending-transaction-sync.service';
 
 @Injectable()
 export class ProductsService {
@@ -33,6 +34,7 @@ export class ProductsService {
     @InjectRepository(CategoryTemplate)
     private categoryTemplatesRepository: Repository<CategoryTemplate>,
     private tempIdMappingsService: TempIdMappingsService,
+    private pendingTransactionSyncService: PendingTransactionSyncService,
   ) {}
 
   // ==================== Non-Admin Methods ====================
@@ -65,6 +67,7 @@ export class ProductsService {
     const saved = await this.productsRepository.save(product);
     if (_tempId) {
       await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'product');
+      await this.pendingTransactionSyncService.onProductMapped(_tempId, saved.id);
     }
     return saved;
   }
@@ -156,7 +159,7 @@ export class ProductsService {
 
   async remove(id: string): Promise<void> {
     const product = await this.findOne(id);
-    await this.productsRepository.remove(product);
+    await this.productsRepository.softRemove(product);
   }
 
   // ==================== Admin-Only Methods ====================
@@ -185,7 +188,8 @@ export class ProductsService {
     const queryBuilder = this.productsRepository.createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.brand', 'brand')
-      .leftJoinAndSelect('product.store', 'store');
+      .leftJoinAndSelect('product.store', 'store')
+      .andWhere('product.deletedAt IS NULL');
 
     if (search) {
       queryBuilder.andWhere(
@@ -274,7 +278,7 @@ export class ProductsService {
 
   async adminRemove(id: string): Promise<void> {
     const product = await this.findOne(id);
-    await this.productsRepository.remove(product);
+    await this.productsRepository.softRemove(product);
   }
 
   // ==================== Store Admin: Add templates to own store ====================

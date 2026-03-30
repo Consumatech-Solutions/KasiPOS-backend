@@ -331,7 +331,8 @@ export class StoresService {
         const { page = 1, limit = 10, search, status } = query;
 
         const queryBuilder = this.storesRepository.createQueryBuilder('store')
-            .leftJoinAndSelect('store.client', 'client');
+            .leftJoinAndSelect('store.client', 'client')
+            .andWhere('store.deletedAt IS NULL');
 
         if (search) {
             queryBuilder.andWhere(
@@ -387,7 +388,7 @@ export class StoresService {
 
     async adminRemove(id: string): Promise<void> {
         const store = await this.findOne(id);
-        await this.storesRepository.remove(store);
+        await this.storesRepository.softRemove(store);
     }
 
     /** Admin: assign a store to a new store admin. Creates user, sets ownerId, sends SMS with temp password and reset link. */

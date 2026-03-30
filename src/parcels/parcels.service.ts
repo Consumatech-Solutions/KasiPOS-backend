@@ -49,6 +49,7 @@ export class ParcelsService {
     const queryBuilder = this.parcelsRepository
       .createQueryBuilder('parcel')
       .where('parcel.storeId = :storeId', { storeId })
+      .andWhere('parcel.deletedAt IS NULL')
       .orderBy('parcel.createdAt', 'DESC');
 
     if (status) {
@@ -212,6 +213,6 @@ export class ParcelsService {
       );
     }
 
-    await this.parcelsRepository.remove(parcel);
+    await this.parcelsRepository.softRemove(parcel);
   }
 }

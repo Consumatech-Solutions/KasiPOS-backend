@@ -139,7 +139,7 @@ export class VouchersService {
 
   async remove(id: string, storeId: string): Promise<void> {
     const voucher = await this.findOne(id, storeId);
-    await this.vouchersRepository.remove(voucher);
+    await this.vouchersRepository.softRemove(voucher);
   }
 
   async validate(

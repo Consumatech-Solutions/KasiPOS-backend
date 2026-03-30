@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  DeleteDateColumn,
 } from 'typeorm';
 import { ProductTemplate } from '../../product-templates/entities/product-template.entity';
 
@@ -13,7 +14,7 @@ export class CategoryTemplate {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column()
   name: string;
 
   @CreateDateColumn({ name: 'created_at' })
@@ -21,6 +22,9 @@ export class CategoryTemplate {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt: Date | null;
 
   @OneToMany(() => ProductTemplate, (productTemplate) => productTemplate.categoryTemplate)
   productTemplates: ProductTemplate[];
