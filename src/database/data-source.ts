@@ -19,6 +19,7 @@ export const dataSourceOptions: DataSourceOptions = {
       }),
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
+  migrationsTransactionMode: 'each',
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
 };
