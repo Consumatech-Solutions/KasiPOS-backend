@@ -5,6 +5,7 @@ import { TransactionsService } from './transactions.service';
 import { PendingTransactionSyncService } from './pending-transaction-sync.service';
 import { Transaction } from './entities/transaction.entity';
 import { PendingTransaction } from './entities/pending-transaction.entity';
+import { TransactionIdempotency } from './entities/transaction-idempotency.entity';
 import { Product } from '../catalogue/products/entities/product.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { VouchersModule } from '../vouchers/vouchers.module';
@@ -16,6 +17,7 @@ import { TempIdMappingsModule } from '../common/temp-id-mappings/temp-id-mapping
     TypeOrmModule.forFeature([
       Transaction,
       PendingTransaction,
+      TransactionIdempotency,
       Product,
       Customer,
     ]),

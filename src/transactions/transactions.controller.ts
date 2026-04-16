@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
   Request,
+  Headers,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -43,8 +44,14 @@ export class TransactionsController {
     description:
       '{ status: "committed", transaction } or { status: "pending", pendingTransactionId }',
   })
-  async create(@Body() dto: CreateTransactionDto): Promise<CreateTransactionResult> {
-    return this.transactionsService.create(dto);
+  async create(
+    @Body() dto: CreateTransactionDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<CreateTransactionResult> {
+    const key = idempotencyKey?.trim();
+    return this.transactionsService.create(dto, {
+      idempotencyKey: key !== undefined && key !== '' ? key : undefined,
+    });
   }
 
   @Get()
