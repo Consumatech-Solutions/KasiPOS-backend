@@ -5,8 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
+import { validate as validateUuid } from 'uuid';
+import { instanceToPlain } from 'class-transformer';
 import { Transaction } from './entities/transaction.entity';
 import { PendingTransaction } from './entities/pending-transaction.entity';
+import { TransactionIdempotency } from './entities/transaction-idempotency.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { Product } from '../catalogue/products/entities/product.entity';
@@ -32,7 +35,47 @@ export class TransactionsService {
     private readonly settingsService: SettingsService,
   ) {}
 
-  async create(dto: CreateTransactionDto): Promise<CreateTransactionResult> {
+  async create(
+    dto: CreateTransactionDto,
+    options?: { idempotencyKey?: string },
+  ): Promise<CreateTransactionResult> {
+    const key = options?.idempotencyKey?.trim();
+    if (!key) {
+      return this.executeCreate(dto);
+    }
+    if (!validateUuid(key)) {
+      throw new BadRequestException('Idempotency-Key must be a valid UUID');
+    }
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        `SELECT pg_advisory_xact_lock((abs(hashtext($1::text || chr(31) || $2::text)))::bigint)`,
+        [dto.storeId, key],
+      );
+      const idemRepo = manager.getRepository(TransactionIdempotency);
+      const existing = await idemRepo.findOne({
+        where: { storeId: dto.storeId, idempotencyKey: key },
+      });
+      if (existing) {
+        return this.parseStoredCreateResult(existing.resultJson);
+      }
+      const result = await this.executeCreate(dto, manager);
+      await idemRepo.insert({
+        storeId: dto.storeId,
+        idempotencyKey: key,
+        resultJson: this.serializeCreateResult(result),
+      });
+      return result;
+    });
+  }
+
+  /**
+   * Core sale logic. When `em` is provided (idempotent create path), all DB work
+   * runs on that manager so it participates in the same transaction as the idempotency row.
+   */
+  private async executeCreate(
+    dto: CreateTransactionDto,
+    em?: EntityManager,
+  ): Promise<CreateTransactionResult> {
     if (!dto.items?.length) {
       throw new BadRequestException(
         'Transaction must contain at least one item',
@@ -82,7 +125,10 @@ export class TransactionsService {
       (dto.paymentMethod === 'Credit' && customerTempUnresolved)
     ) {
       const unresolved = await this.computeUnresolvedTempIds(dto);
-      const row = this.pendingTransactionsRepository.create({
+      const pendingRepo = em
+        ? em.getRepository(PendingTransaction)
+        : this.pendingTransactionsRepository;
+      const row = pendingRepo.create({
         storeId: dto.storeId,
         payload: {
           ...dto,
@@ -90,7 +136,7 @@ export class TransactionsService {
         },
         unresolvedTempIds: unresolved,
       });
-      const saved = await this.pendingTransactionsRepository.save(row);
+      const saved = await pendingRepo.save(row);
       return { status: 'pending', pendingTransactionId: saved.id };
     }
 
@@ -102,12 +148,51 @@ export class TransactionsService {
       );
     }
 
+    if (em) {
+      const transaction = await this.persistTransaction(em, dtoResolved, {
+        isOfflineRequest,
+        pendingCustomerTempId,
+      });
+      this.enqueueVoucherUsage(dtoResolved, transaction);
+      return { status: 'committed', transaction };
+    }
+
     const transaction = await this.commitResolvedTransaction(dtoResolved, {
       isOfflineRequest,
       pendingCustomerTempId,
     });
 
     return { status: 'committed', transaction };
+  }
+
+  private serializeCreateResult(
+    result: CreateTransactionResult,
+  ): Record<string, unknown> {
+    if (result.status === 'pending') {
+      return {
+        status: 'pending',
+        pendingTransactionId: result.pendingTransactionId,
+      };
+    }
+    return {
+      status: 'committed',
+      transaction: instanceToPlain(result.transaction),
+    };
+  }
+
+  private parseStoredCreateResult(
+    json: Record<string, unknown>,
+  ): CreateTransactionResult {
+    if (json.status === 'pending') {
+      return {
+        status: 'pending',
+        pendingTransactionId: String(json.pendingTransactionId),
+      };
+    }
+    return {
+      status: 'committed',
+      transaction: json.transaction as Transaction,
+    };
   }
 
   /** Public for PendingTransactionSyncService */
