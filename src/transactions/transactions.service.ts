@@ -16,6 +16,7 @@ import { VouchersService } from '../vouchers/vouchers.service';
 import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappings.service';
 import { SettingsService } from '../settings/settings.service';
 import { CreateTransactionResult } from './types/create-transaction-result.type';
+import { StockAdjustment, StockAdjustmentReason } from '../stock-adjustments/entities/stock-adjustment.entity';
 
 export const TEMP_ID_PATTERN = /^temp-\d+$/;
 
@@ -251,12 +252,28 @@ export class TransactionsService {
       }
 
       const currentStock = product.stock ?? 0;
-      const nextStock = currentStock - item.quantity;
+      let nextStock = currentStock - item.quantity;
 
-      if (nextStock < 0 && !isOfflineRequest) {
-        throw new BadRequestException(
-          `Insufficient stock for ${product.name}`,
-        );
+      if (nextStock < 0) {
+        if (!isOfflineRequest) {
+          throw new BadRequestException(
+            `Insufficient stock for ${product.name}`,
+          );
+        }
+        
+        // Auto-increase for offline sale fulfillment
+        const deficit = Math.abs(nextStock);
+        const adjustment = new StockAdjustment();
+        adjustment.productId = product.id;
+        adjustment.productName = product.name;
+        adjustment.oldStock = currentStock;
+        adjustment.newStock = currentStock + deficit;
+        adjustment.reason = StockAdjustmentReason.NEW_STOCK_RECEIVED;
+        adjustment.note = 'Auto-increase for offline sale fulfillment';
+        adjustment.storeId = dtoResolved.storeId;
+        await manager.getRepository(StockAdjustment).save(adjustment);
+        
+        nextStock = 0; // after auto-increasing, the stock remaining will be 0
       }
 
       product.stock = nextStock;
