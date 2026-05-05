@@ -9,6 +9,7 @@ import databaseConfig from './config/database.config';
 import otpConfig from './config/otp.config';
 import smsConfig from './config/sms.config';
 import s3Config from './config/s3.config';
+import generalPasswordConfig from './config/general-password.config';
 import { AuthModule } from './auth/auth.module';
 import { StoreAdminResetToken } from './auth/entities/store-admin-reset-token.entity';
 import { UsersModule } from './users/users.module';
@@ -61,7 +62,14 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, jwtConfig, otpConfig, smsConfig, s3Config],
+      load: [
+        databaseConfig,
+        jwtConfig,
+        otpConfig,
+        smsConfig,
+        s3Config,
+        generalPasswordConfig,
+      ],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -78,7 +86,31 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
                 password: configService.get<string>('database.password'),
                 database: configService.get<string>('database.database'),
               }),
-          entities: [User, Category, CategoryTemplate, Product, ProductTemplate, Store, RoleTransfer, Customer, Transaction, PendingTransaction, StockAdjustment, PurchaseOrder, Voucher, MarketplaceOrder, MarketplaceStore, Parcel, Client, Brand, AuditLog, Campaign, StoreAdminResetToken, StoreSettings, TempIdMapping],
+          entities: [
+            User,
+            Category,
+            CategoryTemplate,
+            Product,
+            ProductTemplate,
+            Store,
+            RoleTransfer,
+            Customer,
+            Transaction,
+            PendingTransaction,
+            StockAdjustment,
+            PurchaseOrder,
+            Voucher,
+            MarketplaceOrder,
+            MarketplaceStore,
+            Parcel,
+            Client,
+            Brand,
+            AuditLog,
+            Campaign,
+            StoreAdminResetToken,
+            StoreSettings,
+            TempIdMapping,
+          ],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
           logging: false, // Disable query logging
@@ -122,4 +154,4 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

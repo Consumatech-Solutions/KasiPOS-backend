@@ -4,9 +4,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * Adds store_id to categories so every category belongs to a store.
  * Duplicates existing categories for every store so "existing categories stay in all stores".
  */
-export class AddStoreToCategoriesAndDuplicateForStores1770990000000
-  implements MigrationInterface
-{
+export class AddStoreToCategoriesAndDuplicateForStores1770990000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Add store_id nullable
     await queryRunner.query(`
@@ -35,10 +33,9 @@ export class AddStoreToCategoriesAndDuplicateForStores1770990000000
     const firstStoreId = stores[0].id;
 
     // 3. Assign all existing categories to the first store
-    await queryRunner.query(
-      `UPDATE "categories" SET "store_id" = $1`,
-      [firstStoreId],
-    );
+    await queryRunner.query(`UPDATE "categories" SET "store_id" = $1`, [
+      firstStoreId,
+    ]);
 
     // 4. For each other store, insert a copy of each category (by name)
     const categoryRows = await queryRunner.query(
@@ -97,7 +94,9 @@ export class AddStoreToCategoriesAndDuplicateForStores1770990000000
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_categories_store_id";`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "UQ_categories_store_id_name";`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "UQ_categories_store_id_name";`,
+    );
     await queryRunner.query(`
       ALTER TABLE "categories" DROP CONSTRAINT IF EXISTS "FK_categories_store"
     `);

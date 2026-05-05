@@ -11,7 +11,14 @@ import {
   Request,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -28,7 +35,8 @@ export class CategoriesController {
   @Post()
   @ApiOperation({
     summary: 'Create a new category',
-    description: 'Create a new product category for a store. Store admin uses their store; admin may pass storeId.',
+    description:
+      'Create a new product category for a store. Store admin uses their store; admin may pass storeId.',
   })
   @ApiResponse({
     status: 201,
@@ -44,11 +52,19 @@ export class CategoriesController {
     },
   })
   @ApiResponse({ status: 400, description: 'Store ID required' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
-  async create(@Body() createCategoryDto: CreateCategoryDto, @Request() req: any) {
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  async create(
+    @Body() createCategoryDto: CreateCategoryDto,
+    @Request() req: any,
+  ) {
     const storeId = createCategoryDto.storeId ?? req.user?.storeId;
     if (!storeId) {
-      throw new BadRequestException('Store ID is required (set in body for admin or use store admin context).');
+      throw new BadRequestException(
+        'Store ID is required (set in body for admin or use store admin context).',
+      );
     }
     return this.categoriesService.create(createCategoryDto, storeId);
   }
@@ -56,11 +72,27 @@ export class CategoriesController {
   @Get()
   @ApiOperation({
     summary: 'List categories',
-    description: 'Paginated list. Store admin sees their store only; admin may filter by storeId query.',
+    description:
+      'Paginated list. Store admin sees their store only; admin may filter by storeId query.',
   })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 100)' })
-  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Filter by store (admin)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Filter by store (admin)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Categories retrieved successfully',
@@ -84,7 +116,10 @@ export class CategoriesController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async findAll(
     @Query() paginationDto: PaginationDto,
     @Query('storeId') storeIdQuery?: string,
@@ -102,14 +137,20 @@ export class CategoriesController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get category by ID',
-    description: 'Store admin: category must belong to their store. Admin: any category.',
+    description:
+      'Store admin: category must belong to their store. Admin: any category.',
   })
   @ApiParam({
     name: 'id',
     type: String,
     description: 'Category UUID',
   })
-  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Scope to store (admin)' })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Scope to store (admin)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Category retrieved successfully',
@@ -123,9 +164,16 @@ export class CategoriesController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  async findOne(@Param('id') id: string, @Query('storeId') storeIdQuery?: string, @Request() req?: any) {
+  async findOne(
+    @Param('id') id: string,
+    @Query('storeId') storeIdQuery?: string,
+    @Request() req?: any,
+  ) {
     const storeId = req?.user?.storeId ?? storeIdQuery;
     return this.categoriesService.findOne(id, storeId);
   }
@@ -140,7 +188,12 @@ export class CategoriesController {
     type: String,
     description: 'Category UUID',
   })
-  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Scope to store (admin)' })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Scope to store (admin)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Category updated successfully',
@@ -154,7 +207,10 @@ export class CategoriesController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Category not found' })
   async update(
     @Param('id') id: string,
@@ -176,7 +232,12 @@ export class CategoriesController {
     type: String,
     description: 'Category UUID',
   })
-  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Scope to store (admin)' })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Scope to store (admin)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Category deleted successfully',
@@ -186,9 +247,16 @@ export class CategoriesController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  async remove(@Param('id') id: string, @Query('storeId') storeIdQuery?: string, @Request() req?: any) {
+  async remove(
+    @Param('id') id: string,
+    @Query('storeId') storeIdQuery?: string,
+    @Request() req?: any,
+  ) {
     const storeId = req?.user?.storeId ?? storeIdQuery;
     await this.categoriesService.remove(id, storeId);
     return { message: 'Category deleted successfully' };

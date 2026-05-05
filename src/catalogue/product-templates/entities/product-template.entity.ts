@@ -29,7 +29,13 @@ export class ProductTemplate {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number | null;
 
-  @Column({ name: 'cost_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'cost_price',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   costPrice: number | null;
 
   @Column({ type: 'int', nullable: true })
@@ -41,7 +47,12 @@ export class ProductTemplate {
   @Column({ name: 'product_image', nullable: true })
   productImage: string | null;
 
-  @Column({ name: 'low_stock_threshold', type: 'int', nullable: true, default: 0 })
+  @Column({
+    name: 'low_stock_threshold',
+    type: 'int',
+    nullable: true,
+    default: 0,
+  })
   lowStockThreshold: number | null;
 
   @Column({ name: 'brand_id', nullable: true })

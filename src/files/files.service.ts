@@ -1,6 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 
@@ -12,7 +16,7 @@ export class FilesService {
 
   constructor(private configService: ConfigService) {
     const s3Config = this.configService.get('s3');
-    
+
     this.s3Client = new S3Client({
       region: s3Config.region,
       credentials: {
@@ -27,15 +31,26 @@ export class FilesService {
     this.maxFileSize = s3Config.maxFileSize;
   }
 
-  async uploadFile(file: Express.Multer.File, folder: string = 'uploads'): Promise<string> {
+  async uploadFile(
+    file: Express.Multer.File,
+    folder: string = 'uploads',
+  ): Promise<string> {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
 
     // Validate file type (images only)
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Invalid file type. Only images are allowed.');
+      throw new BadRequestException(
+        'Invalid file type. Only images are allowed.',
+      );
     }
 
     // Validate file size using MAX_FILE_SIZE from env
@@ -62,7 +77,9 @@ export class FilesService {
       // Return the public URL for DigitalOcean Spaces
       // Format: https://bucket.region.digitaloceanspaces.com/path/to/file
       const endpoint = this.configService.get<string>('s3.endpoint');
-      const endpointHost = endpoint.replace('https://', '').replace('http://', '');
+      const endpointHost = endpoint
+        .replace('https://', '')
+        .replace('http://', '');
       return `https://${this.bucket}.${endpointHost}/${fileName}`;
     } catch (error) {
       throw new BadRequestException(`Failed to upload file: ${error.message}`);
@@ -75,7 +92,7 @@ export class FilesService {
       // URL format: https://bucket.region.digitaloceanspaces.com/folder/filename.ext
       const url = new URL(fileUrl);
       const pathParts = url.pathname.split('/').filter(Boolean);
-      
+
       // Remove bucket name from path if present
       const key = pathParts.join('/');
 

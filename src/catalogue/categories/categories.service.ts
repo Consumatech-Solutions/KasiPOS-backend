@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { Category } from './entities/category.entity';
@@ -15,14 +19,19 @@ export class CategoriesService {
     private tempIdMappingsService: TempIdMappingsService,
   ) {}
 
-  async create(createCategoryDto: CreateCategoryDto, storeId: string): Promise<Category> {
+  async create(
+    createCategoryDto: CreateCategoryDto,
+    storeId: string,
+  ): Promise<Category> {
     const { _tempId, name } = createCategoryDto;
 
     const existing = await this.categoriesRepository.findOne({
       where: { storeId, name },
     });
     if (existing) {
-      throw new ConflictException(`A category with the name "${name}" already exists in this store.`);
+      throw new ConflictException(
+        `A category with the name "${name}" already exists in this store.`,
+      );
     }
 
     const category = this.categoriesRepository.create({
@@ -31,7 +40,11 @@ export class CategoriesService {
     });
     const saved = await this.categoriesRepository.save(category);
     if (_tempId) {
-      await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'category');
+      await this.tempIdMappingsService.saveMapping(
+        _tempId,
+        saved.id,
+        'category',
+      );
     }
     return saved;
   }
@@ -94,7 +107,9 @@ export class CategoriesService {
         where: { storeId: category.storeId, name: updateCategoryDto.name },
       });
       if (existing) {
-        throw new ConflictException(`A category with the name "${updateCategoryDto.name}" already exists in this store.`);
+        throw new ConflictException(
+          `A category with the name "${updateCategoryDto.name}" already exists in this store.`,
+        );
       }
     }
 

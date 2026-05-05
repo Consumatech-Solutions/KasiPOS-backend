@@ -77,7 +77,14 @@ export class ProductTemplatesService {
   async findAll(
     query: GetProductTemplatesDto,
   ): Promise<PaginationResult<ProductTemplate>> {
-    const { page = 1, limit = 10, search, categoryTemplateId, storeId, sortByName } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      categoryTemplateId,
+      storeId,
+      sortByName,
+    } = query;
 
     // If storeId is provided, find templates that are NOT already assigned to that store
     let excludedTemplateIds: string[] = [];
@@ -108,8 +115,16 @@ export class ProductTemplatesService {
       // When search is used with storeId filter, we need to apply the exclusion to both search conditions
       if (storeId && excludedTemplateIds.length > 0) {
         whereClause = [
-          { ...where, id: Not(In(excludedTemplateIds)), name: ILike(`%${search}%`) },
-          { ...where, id: Not(In(excludedTemplateIds)), barCode: ILike(`%${search}%`) },
+          {
+            ...where,
+            id: Not(In(excludedTemplateIds)),
+            name: ILike(`%${search}%`),
+          },
+          {
+            ...where,
+            id: Not(In(excludedTemplateIds)),
+            barCode: ILike(`%${search}%`),
+          },
         ];
       } else {
         whereClause = [
@@ -146,7 +161,7 @@ export class ProductTemplatesService {
    * templates already assigned to the given store.
    */
   async findAllForStore(storeId?: string): Promise<ProductTemplate[]> {
-    let where: any = {};
+    const where: any = {};
     if (storeId) {
       const existingProducts = await this.productsRepository.find({
         where: {
@@ -199,9 +214,11 @@ export class ProductTemplatesService {
 
     if (dto.categoryTemplateId !== undefined) {
       if (dto.categoryTemplateId) {
-        const categoryTemplate = await this.categoryTemplatesRepository.findOne({
-          where: { id: dto.categoryTemplateId },
-        });
+        const categoryTemplate = await this.categoryTemplatesRepository.findOne(
+          {
+            where: { id: dto.categoryTemplateId },
+          },
+        );
         if (!categoryTemplate) {
           throw new NotFoundException('Category template not found');
         }
@@ -256,7 +273,9 @@ export class ProductTemplatesService {
         where: { id: dto.categoryId },
       });
       if (!c || c.storeId !== store.id) {
-        throw new NotFoundException('Category not found or does not belong to this store');
+        throw new NotFoundException(
+          'Category not found or does not belong to this store',
+        );
       }
       category = c;
     } else if (template.categoryTemplate) {

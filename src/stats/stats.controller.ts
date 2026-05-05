@@ -1,5 +1,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { StatsService, AllStatsDto } from './stats.service';
 import { GetStatsDto } from './dto/get-stats.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,19 +31,22 @@ export class StatsController {
     name: 'period',
     required: false,
     enum: ['today', 'week', 'month', 'year'],
-    description: 'Filter stats by period (today, this week, this month, this year)',
+    description:
+      'Filter stats by period (today, this week, this month, this year)',
   })
   @ApiQuery({
     name: 'startDate',
     required: false,
     type: String,
-    description: 'Custom range start (ISO 8601). Use with endDate; overrides period.',
+    description:
+      'Custom range start (ISO 8601). Use with endDate; overrides period.',
   })
   @ApiQuery({
     name: 'endDate',
     required: false,
     type: String,
-    description: 'Custom range end (ISO 8601). Use with startDate; overrides period.',
+    description:
+      'Custom range end (ISO 8601). Use with startDate; overrides period.',
   })
   @ApiResponse({
     status: 200,
@@ -59,7 +68,10 @@ export class StatsController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   async getAll(@Query() filter: GetStatsDto): Promise<AllStatsDto> {
     return this.statsService.getAll(filter);
   }

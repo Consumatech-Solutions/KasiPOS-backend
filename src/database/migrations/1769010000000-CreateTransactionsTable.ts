@@ -20,16 +20,25 @@ export class CreateTransactionsTable1769010000000 implements MigrationInterface 
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "IDX_transactions_store_id" ON "transactions" ("store_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_transactions_customer_id" ON "transactions" ("customer_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_transactions_created_at" ON "transactions" ("created_at")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_transactions_store_id" ON "transactions" ("store_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_transactions_customer_id" ON "transactions" ("customer_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_transactions_created_at" ON "transactions" ("created_at")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_transactions_created_at"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_transactions_customer_id"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_transactions_created_at"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_transactions_customer_id"`,
+    );
     await queryRunner.query(`DROP INDEX "public"."IDX_transactions_store_id"`);
     await queryRunner.query(`DROP TABLE "transactions"`);
   }
 }
-

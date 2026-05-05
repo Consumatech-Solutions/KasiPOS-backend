@@ -3,7 +3,8 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const useUrl = process.env.NODE_ENV === 'production' && process.env.DATABASE_URL;
+const useUrl =
+  process.env.NODE_ENV === 'production' && process.env.DATABASE_URL;
 console.log('useUrl', useUrl);
 
 export const dataSourceOptions: DataSourceOptions = {

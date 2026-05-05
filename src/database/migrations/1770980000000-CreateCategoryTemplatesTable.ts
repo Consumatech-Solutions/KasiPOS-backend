@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateCategoryTemplatesTable1770980000000
-  implements MigrationInterface
-{
+export class CreateCategoryTemplatesTable1770980000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE "category_templates" (

@@ -18,8 +18,12 @@ export class CreateRoleTransfersTable1771080000000 implements MigrationInterface
         CONSTRAINT "FK_role_transfers_to_user" FOREIGN KEY ("to_user_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "IDX_role_transfers_store_id" ON "role_transfers" ("store_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_role_transfers_status" ON "role_transfers" ("status")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_role_transfers_store_id" ON "role_transfers" ("store_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_role_transfers_status" ON "role_transfers" ("status")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

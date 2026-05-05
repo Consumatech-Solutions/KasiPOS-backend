@@ -18,13 +18,21 @@ export class CreateMarketplaceStoresTable1769070000000 implements MigrationInter
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_stores_code" ON "marketplace_stores" ("code")`);
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_stores_is_active" ON "marketplace_stores" ("is_active")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_stores_code" ON "marketplace_stores" ("code")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_stores_is_active" ON "marketplace_stores" ("is_active")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_stores_is_active"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_stores_code"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_stores_is_active"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_stores_code"`,
+    );
     await queryRunner.query(`DROP TABLE "marketplace_stores"`);
   }
 }

@@ -35,46 +35,50 @@ export class AuditLogInterceptor implements NestInterceptor {
       tap({
         next: (responseData) => {
           // Log the action after successful response
-          this.auditLogsService.create({
-            userId: user?.id || null,
-            action,
-            entity,
-            entityId: entityId || responseData?.id || null,
-            changes: this.sanitizeBody(body, method),
-            endpoint: url,
-            method,
-            ipAddress,
-            userAgent,
-            statusCode: response.statusCode,
-            metadata: {
-              params,
-              responseId: responseData?.id,
-            },
-          }).catch((error) => {
-            // Log error but don't fail the request
-            console.error('Failed to create audit log:', error);
-          });
+          this.auditLogsService
+            .create({
+              userId: user?.id || null,
+              action,
+              entity,
+              entityId: entityId || responseData?.id || null,
+              changes: this.sanitizeBody(body, method),
+              endpoint: url,
+              method,
+              ipAddress,
+              userAgent,
+              statusCode: response.statusCode,
+              metadata: {
+                params,
+                responseId: responseData?.id,
+              },
+            })
+            .catch((error) => {
+              // Log error but don't fail the request
+              console.error('Failed to create audit log:', error);
+            });
         },
         error: (error) => {
           // Log failed attempts too
-          this.auditLogsService.create({
-            userId: user?.id || null,
-            action,
-            entity,
-            entityId,
-            changes: this.sanitizeBody(body, method),
-            endpoint: url,
-            method,
-            ipAddress,
-            userAgent,
-            statusCode: error.status || 500,
-            metadata: {
-              params,
-              error: error.message,
-            },
-          }).catch((err) => {
-            console.error('Failed to create audit log:', err);
-          });
+          this.auditLogsService
+            .create({
+              userId: user?.id || null,
+              action,
+              entity,
+              entityId,
+              changes: this.sanitizeBody(body, method),
+              endpoint: url,
+              method,
+              ipAddress,
+              userAgent,
+              statusCode: error.status || 500,
+              metadata: {
+                params,
+                error: error.message,
+              },
+            })
+            .catch((err) => {
+              console.error('Failed to create audit log:', err);
+            });
         },
       }),
     );
@@ -101,7 +105,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     const pathOnly = url.split('?')[0];
     // Split by '/' and get the first meaningful segment
     const segments = pathOnly.split('/').filter(Boolean);
-    
+
     if (segments.length > 0) {
       // Return the first segment (e.g., 'users', 'products', 'stores')
       // Handle 'admin' prefix
@@ -110,7 +114,7 @@ export class AuditLogInterceptor implements NestInterceptor {
       }
       return segments[0];
     }
-    
+
     return 'unknown';
   }
 
@@ -123,7 +127,15 @@ export class AuditLogInterceptor implements NestInterceptor {
     const sanitized = { ...body };
 
     // Remove sensitive fields
-    const sensitiveFields = ['password', 'passwordHash', 'token', 'secret', 'apiKey', 'otp', 'code'];
+    const sensitiveFields = [
+      'password',
+      'passwordHash',
+      'token',
+      'secret',
+      'apiKey',
+      'otp',
+      'code',
+    ];
     sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '[REDACTED]';

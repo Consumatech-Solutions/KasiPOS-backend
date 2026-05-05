@@ -8,13 +8,13 @@ import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Store, RoleTransfer]),
-        UsersModule,
-        AuthModule,
-    ],
-    controllers: [StoresController],
-    providers: [StoresService],
-    exports: [StoresService],
+  imports: [
+    TypeOrmModule.forFeature([Store, RoleTransfer]),
+    UsersModule,
+    AuthModule,
+  ],
+  controllers: [StoresController],
+  providers: [StoresService],
+  exports: [StoresService],
 })
 export class StoresModule {}

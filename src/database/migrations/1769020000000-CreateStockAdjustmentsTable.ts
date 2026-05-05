@@ -33,15 +33,27 @@ export class CreateStockAdjustmentsTable1769020000000 implements MigrationInterf
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "IDX_stock_adjustments_product_id" ON "stock_adjustments" ("product_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_stock_adjustments_store_id" ON "stock_adjustments" ("store_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_stock_adjustments_created_at" ON "stock_adjustments" ("created_at")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_stock_adjustments_product_id" ON "stock_adjustments" ("product_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_stock_adjustments_store_id" ON "stock_adjustments" ("store_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_stock_adjustments_created_at" ON "stock_adjustments" ("created_at")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_stock_adjustments_created_at"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_stock_adjustments_store_id"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_stock_adjustments_product_id"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_stock_adjustments_created_at"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_stock_adjustments_store_id"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_stock_adjustments_product_id"`,
+    );
     await queryRunner.query(`DROP TABLE "stock_adjustments"`);
     await queryRunner.query(`DROP TYPE "stock_adjustment_reason_enum"`);
   }

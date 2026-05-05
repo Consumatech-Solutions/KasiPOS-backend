@@ -16,7 +16,10 @@ import { VouchersService } from '../vouchers/vouchers.service';
 import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappings.service';
 import { SettingsService } from '../settings/settings.service';
 import { CreateTransactionResult } from './types/create-transaction-result.type';
-import { StockAdjustment, StockAdjustmentReason } from '../stock-adjustments/entities/stock-adjustment.entity';
+import {
+  StockAdjustment,
+  StockAdjustmentReason,
+} from '../stock-adjustments/entities/stock-adjustment.entity';
 
 export const TEMP_ID_PATTERN = /^temp-\d+$/;
 
@@ -112,9 +115,7 @@ export class TransactionsService {
   }
 
   /** Public for PendingTransactionSyncService */
-  async computeUnresolvedTempIds(
-    dto: CreateTransactionDto,
-  ): Promise<string[]> {
+  async computeUnresolvedTempIds(dto: CreateTransactionDto): Promise<string[]> {
     const ids: string[] = [];
     if (dto.customerId && TEMP_ID_PATTERN.test(String(dto.customerId))) {
       const r = await this.tempIdMappingsService.resolveId(
@@ -172,7 +173,10 @@ export class TransactionsService {
 
   async commitResolvedTransactionAndDeletePending(
     dto: CreateTransactionDto,
-    options: { isOfflineRequest: boolean; pendingCustomerTempId: string | null },
+    options: {
+      isOfflineRequest: boolean;
+      pendingCustomerTempId: string | null;
+    },
     pendingId: string,
   ): Promise<Transaction> {
     const saved = await this.dataSource.transaction(async (manager) => {
@@ -186,7 +190,10 @@ export class TransactionsService {
 
   private async commitResolvedTransaction(
     dto: CreateTransactionDto,
-    options: { isOfflineRequest: boolean; pendingCustomerTempId: string | null },
+    options: {
+      isOfflineRequest: boolean;
+      pendingCustomerTempId: string | null;
+    },
   ): Promise<Transaction> {
     const saved = await this.dataSource.transaction(async (manager) => {
       return this.persistTransaction(manager, dto, options);
@@ -201,11 +208,7 @@ export class TransactionsService {
   ): void {
     if (dto.voucherCode) {
       this.vouchersService
-        .recordUsage(
-          dto.voucherCode,
-          dto.storeId,
-          dto.customerId ?? undefined,
-        )
+        .recordUsage(dto.voucherCode, dto.storeId, dto.customerId ?? undefined)
         .catch((err) => {
           console.error('Failed to record voucher usage:', err);
         });
@@ -237,7 +240,10 @@ export class TransactionsService {
   private async persistTransaction(
     manager: EntityManager,
     dtoResolved: CreateTransactionDto,
-    options: { isOfflineRequest: boolean; pendingCustomerTempId: string | null },
+    options: {
+      isOfflineRequest: boolean;
+      pendingCustomerTempId: string | null;
+    },
   ): Promise<Transaction> {
     const { isOfflineRequest, pendingCustomerTempId } = options;
 
@@ -260,7 +266,7 @@ export class TransactionsService {
             `Insufficient stock for ${product.name}`,
           );
         }
-        
+
         // Auto-increase for offline sale fulfillment
         const deficit = Math.abs(nextStock);
         const adjustment = new StockAdjustment();
@@ -272,7 +278,7 @@ export class TransactionsService {
         adjustment.note = 'Auto-increase for offline sale fulfillment';
         adjustment.storeId = dtoResolved.storeId;
         await manager.getRepository(StockAdjustment).save(adjustment);
-        
+
         nextStock = 0; // after auto-increasing, the stock remaining will be 0
       }
 

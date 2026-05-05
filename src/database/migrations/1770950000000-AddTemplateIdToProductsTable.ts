@@ -36,15 +36,3 @@ export class AddTemplateIdToProductsTable1770950000000 implements MigrationInter
     `);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -10,7 +10,10 @@ export class CreateCategoryDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ description: 'Store ID (admin only; omit for store admin to use their store)' })
+  @ApiPropertyOptional({
+    description:
+      'Store ID (admin only; omit for store admin to use their store)',
+  })
   @IsUUID()
   @IsOptional()
   storeId?: string;

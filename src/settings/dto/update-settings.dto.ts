@@ -22,7 +22,9 @@ export class CustomerCreditDto {
   @IsIn(['fixed', 'variable'])
   termType: 'fixed' | 'variable';
 
-  @ApiPropertyOptional({ description: 'Number of days; required when termType is "fixed"' })
+  @ApiPropertyOptional({
+    description: 'Number of days; required when termType is "fixed"',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -46,7 +48,8 @@ export class UpdateSettingsDto {
   vatIncludedInPrice?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Credit settings: customerCredit with creditLimit, termType, term',
+    description:
+      'Credit settings: customerCredit with creditLimit, termType, term',
   })
   @IsOptional()
   @ValidateNested()

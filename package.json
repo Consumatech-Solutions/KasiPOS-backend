@@ -25,7 +25,8 @@
     "migration:revert": "npm run typeorm -- -d src/database/data-source.ts migration:revert",
     "migration:show": "npm run typeorm -- -d src/database/data-source.ts migration:show",
     "seed:run": "ts-node -r tsconfig-paths/register src/database/seed/run-seed.ts",
-    "seed:clear": "ts-node -r tsconfig-paths/register src/database/seed/clear-seed.ts"
+    "seed:clear": "ts-node -r tsconfig-paths/register src/database/seed/clear-seed.ts",
+    "generate:general-password": "ts-node -r tsconfig-paths/register src/auth/commands/generate-general-password.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",

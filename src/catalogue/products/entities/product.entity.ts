@@ -21,7 +21,9 @@ export class Product {
   @Column()
   name: string;
 
-  @ManyToOne(() => Category, (category) => category.products, { nullable: false })
+  @ManyToOne(() => Category, (category) => category.products, {
+    nullable: false,
+  })
   @JoinColumn({ name: 'category_id' })
   category: Category;
 
@@ -43,7 +45,12 @@ export class Product {
   @Column({ name: 'product_image', nullable: true })
   productImage: string | null;
 
-  @Column({ name: 'low_stock_threshold', type: 'int', nullable: true, default: 0 })
+  @Column({
+    name: 'low_stock_threshold',
+    type: 'int',
+    nullable: true,
+    default: 0,
+  })
   lowStockThreshold: number | null;
 
   // New admin-only fields

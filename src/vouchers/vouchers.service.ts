@@ -10,7 +10,10 @@ import { Voucher, VoucherType } from './entities/voucher.entity';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
 import { GetVouchersDto } from './dto/get-vouchers.dto';
-import { ValidateVoucherDto, ValidateVoucherResponseDto } from './dto/validate-voucher.dto';
+import {
+  ValidateVoucherDto,
+  ValidateVoucherResponseDto,
+} from './dto/validate-voucher.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
 
 @Injectable()
@@ -49,7 +52,10 @@ export class VouchersService {
     return this.vouchersRepository.save(voucher);
   }
 
-  async findAll(query: GetVouchersDto, storeId: string): Promise<PaginationResult<Voucher>> {
+  async findAll(
+    query: GetVouchersDto,
+    storeId: string,
+  ): Promise<PaginationResult<Voucher>> {
     const { page = 1, limit = 10, isActive } = query;
 
     const where: any = { storeId };
@@ -89,12 +95,18 @@ export class VouchersService {
     return voucher;
   }
 
-  async update(id: string, dto: UpdateVoucherDto, storeId: string): Promise<Voucher> {
+  async update(
+    id: string,
+    dto: UpdateVoucherDto,
+    storeId: string,
+  ): Promise<Voucher> {
     const voucher = await this.findOne(id, storeId);
 
     // Don't allow code changes
     if (dto.code && dto.code.toUpperCase() !== voucher.code) {
-      throw new BadRequestException('Voucher code cannot be changed after creation');
+      throw new BadRequestException(
+        'Voucher code cannot be changed after creation',
+      );
     }
 
     // Check if new code conflicts with existing voucher
@@ -224,7 +236,11 @@ export class VouchersService {
     };
   }
 
-  async recordUsage(code: string, storeId: string, customerId?: string): Promise<void> {
+  async recordUsage(
+    code: string,
+    storeId: string,
+    customerId?: string,
+  ): Promise<void> {
     const voucher = await this.vouchersRepository.findOne({
       where: { code: code.toUpperCase(), storeId },
     });

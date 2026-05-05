@@ -34,7 +34,9 @@ export class AddSoftDeleteDeletedAt1771130000000 implements MigrationInterface {
     }
 
     // categories: unique (store_id, name) -> partial
-    await queryRunner.query(`DROP INDEX IF EXISTS "UQ_categories_store_id_name"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "UQ_categories_store_id_name"`,
+    );
     await queryRunner.query(`
       CREATE UNIQUE INDEX "UQ_categories_store_id_name"
       ON "categories" ("store_id", "name")
@@ -107,7 +109,9 @@ export class AddSoftDeleteDeletedAt1771130000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "UQ_marketplace_stores_code"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "UQ_marketplace_stores_code"`,
+    );
     await queryRunner.query(`
       ALTER TABLE "marketplace_stores"
       ADD CONSTRAINT "marketplace_stores_code_key" UNIQUE ("code")
@@ -128,7 +132,9 @@ export class AddSoftDeleteDeletedAt1771130000000 implements MigrationInterface {
       ADD CONSTRAINT "UQ_vouchers_store_code" UNIQUE ("store_id", "code")
     `);
 
-    await queryRunner.query(`DROP INDEX IF EXISTS "UQ_category_templates_name"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "UQ_category_templates_name"`,
+    );
     await queryRunner.query(`
       ALTER TABLE "category_templates"
       ADD CONSTRAINT "category_templates_name_key" UNIQUE ("name")
@@ -140,7 +146,9 @@ export class AddSoftDeleteDeletedAt1771130000000 implements MigrationInterface {
       ADD CONSTRAINT "product_templates_name_key" UNIQUE ("name")
     `);
 
-    await queryRunner.query(`DROP INDEX IF EXISTS "UQ_categories_store_id_name"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "UQ_categories_store_id_name"`,
+    );
     await queryRunner.query(`
       CREATE UNIQUE INDEX "UQ_categories_store_id_name"
       ON "categories" ("store_id", "name")

@@ -14,7 +14,8 @@ export class GetStatsDto {
   period?: StatsPeriod;
 
   @ApiPropertyOptional({
-    description: 'Custom range start date (ISO 8601). When set with endDate, overrides period.',
+    description:
+      'Custom range start date (ISO 8601). When set with endDate, overrides period.',
     example: '2026-01-01T00:00:00.000Z',
   })
   @IsOptional()
@@ -22,7 +23,8 @@ export class GetStatsDto {
   startDate?: string;
 
   @ApiPropertyOptional({
-    description: 'Custom range end date (ISO 8601). When set with startDate, overrides period.',
+    description:
+      'Custom range end date (ISO 8601). When set with startDate, overrides period.',
     example: '2026-01-31T23:59:59.999Z',
   })
   @IsOptional()

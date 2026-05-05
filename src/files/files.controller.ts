@@ -9,7 +9,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -24,7 +31,8 @@ export class FilesController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: 'Upload a file',
-    description: 'Upload a file to S3 storage. Returns the public URL of the uploaded file. Requires authentication.',
+    description:
+      'Upload a file to S3 storage. Returns the public URL of the uploaded file. Requires authentication.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -34,7 +42,8 @@ export class FilesController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Image file to upload (max size from MAX_FILE_SIZE env, default 2MB)',
+          description:
+            'Image file to upload (max size from MAX_FILE_SIZE env, default 2MB)',
         },
       },
     },
@@ -48,8 +57,15 @@ export class FilesController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid file type or file exceeds MAX_FILE_SIZE limit' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Bad request - Invalid file type or file exceeds MAX_FILE_SIZE limit',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -62,7 +78,8 @@ export class FilesController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: 'Upload a product image',
-    description: 'Upload a product image to S3 storage. Returns the public URL of the uploaded file. Requires authentication.',
+    description:
+      'Upload a product image to S3 storage. Returns the public URL of the uploaded file. Requires authentication.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -72,7 +89,8 @@ export class FilesController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Product image file to upload (max size from MAX_FILE_SIZE env, default 2MB)',
+          description:
+            'Product image file to upload (max size from MAX_FILE_SIZE env, default 2MB)',
         },
       },
     },
@@ -86,8 +104,15 @@ export class FilesController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid file type or file exceeds MAX_FILE_SIZE limit' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Bad request - Invalid file type or file exceeds MAX_FILE_SIZE limit',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async uploadProductImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -99,7 +124,8 @@ export class FilesController {
   @Delete()
   @ApiOperation({
     summary: 'Delete a file',
-    description: 'Delete a file from S3 storage by its URL. Requires authentication.',
+    description:
+      'Delete a file from S3 storage by its URL. Requires authentication.',
   })
   @ApiResponse({
     status: 200,
@@ -110,8 +136,14 @@ export class FilesController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid URL or file not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid URL or file not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async deleteFile(@Body('url') url: string) {
     if (!url) {
       throw new BadRequestException('URL is required');

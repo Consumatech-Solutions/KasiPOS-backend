@@ -25,8 +25,12 @@ export class SmsService {
     message: string,
   ): Promise<{ success: boolean; message: string }> {
     const apiUrl = 'https://api.winsms.co.za/api/batchmessage.asp';
-    const username = this.configService.get<string>('sms.productionConfig.winsms.username');
-    const password = this.configService.get<string>('sms.productionConfig.winsms.password');
+    const username = this.configService.get<string>(
+      'sms.productionConfig.winsms.username',
+    );
+    const password = this.configService.get<string>(
+      'sms.productionConfig.winsms.password',
+    );
 
     if (!username || !password) {
       throw new BadRequestException('WinSMS credentials are not configured');

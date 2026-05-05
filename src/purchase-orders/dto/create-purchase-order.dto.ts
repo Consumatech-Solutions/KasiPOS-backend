@@ -46,7 +46,10 @@ class CreatePurchaseOrderItemDto {
 }
 
 export class CreatePurchaseOrderDto {
-  @ApiProperty({ type: [CreatePurchaseOrderItemDto], description: 'Order items' })
+  @ApiProperty({
+    type: [CreatePurchaseOrderItemDto],
+    description: 'Order items',
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreatePurchaseOrderItemDto)

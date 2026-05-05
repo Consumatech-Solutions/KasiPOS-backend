@@ -58,7 +58,10 @@ export class PendingTransactionSyncService {
     serverId: string,
   ): Promise<void> {
     const payload = this.applyMapping(
-      { ...pending.payload, items: pending.payload.items.map((i) => ({ ...i })) },
+      {
+        ...pending.payload,
+        items: pending.payload.items.map((i) => ({ ...i })),
+      },
       kind,
       tempId,
       serverId,

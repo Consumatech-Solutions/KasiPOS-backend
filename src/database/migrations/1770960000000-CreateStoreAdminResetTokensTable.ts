@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateStoreAdminResetTokensTable1770960000000
-  implements MigrationInterface
-{
+export class CreateStoreAdminResetTokensTable1770960000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE "store_admin_reset_tokens" (
@@ -24,7 +22,9 @@ export class CreateStoreAdminResetTokensTable1770960000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "IDX_store_admin_reset_tokens_expires_at";`);
+    await queryRunner.query(
+      `DROP INDEX "IDX_store_admin_reset_tokens_expires_at";`,
+    );
     await queryRunner.query(`DROP INDEX "IDX_store_admin_reset_tokens_token";`);
     await queryRunner.query(`DROP TABLE "store_admin_reset_tokens";`);
   }

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -39,7 +44,10 @@ export class ProductsService {
 
   // ==================== Non-Admin Methods ====================
 
-  async create(createProductDto: CreateProductDto, storeId: string): Promise<Product> {
+  async create(
+    createProductDto: CreateProductDto,
+    storeId: string,
+  ): Promise<Product> {
     const { _tempId, ...dto } = createProductDto;
 
     // Verify category exists
@@ -53,27 +61,44 @@ export class ProductsService {
     const existingProduct = await this.productsRepository.findOne({
       where: {
         name: createProductDto.name,
-        storeId: storeId
-      }
-    })
+        storeId: storeId,
+      },
+    });
 
-    if(existingProduct) return existingProduct;
+    if (existingProduct) return existingProduct;
 
     const product = this.productsRepository.create({
       ...dto,
       category,
-      storeId
+      storeId,
     });
     const saved = await this.productsRepository.save(product);
     if (_tempId) {
-      await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'product');
-      await this.pendingTransactionSyncService.onProductMapped(_tempId, saved.id);
+      await this.tempIdMappingsService.saveMapping(
+        _tempId,
+        saved.id,
+        'product',
+      );
+      await this.pendingTransactionSyncService.onProductMapped(
+        _tempId,
+        saved.id,
+      );
     }
     return saved;
   }
 
-  async findAll(query: GetProductsDto, storeId: string): Promise<PaginationResult<Product>> {
-    const { page = 1, limit = 10, search, categoryId, updatedAtAfter, sortByName } = query;
+  async findAll(
+    query: GetProductsDto,
+    storeId: string,
+  ): Promise<PaginationResult<Product>> {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      categoryId,
+      updatedAtAfter,
+      sortByName,
+    } = query;
 
     const where: any = {};
 
@@ -93,7 +118,7 @@ export class ProductsService {
     if (search) {
       whereClause = [
         { ...where, name: ILike(`%${search}%`) },
-        { ...where, barCode: ILike(`%${search}%`) }
+        { ...where, barCode: ILike(`%${search}%`) },
       ];
     }
 
@@ -129,11 +154,17 @@ export class ProductsService {
     return product;
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(
+    id: string,
+    updateProductDto: UpdateProductDto,
+  ): Promise<Product> {
     const product = await this.findOne(id);
 
     // If categoryId is being updated, verify the new category exists
-    if (updateProductDto.categoryId && updateProductDto.categoryId !== product.categoryId) {
+    if (
+      updateProductDto.categoryId &&
+      updateProductDto.categoryId !== product.categoryId
+    ) {
       const category = await this.categoriesRepository.findOne({
         where: { id: updateProductDto.categoryId },
       });
@@ -149,7 +180,9 @@ export class ProductsService {
         where: { name: updateProductDto.name },
       });
       if (existing) {
-        throw new ConflictException(`A product with the name "${updateProductDto.name}" already exists.`);
+        throw new ConflictException(
+          `A product with the name "${updateProductDto.name}" already exists.`,
+        );
       }
     }
 
@@ -164,7 +197,9 @@ export class ProductsService {
 
   // ==================== Admin-Only Methods ====================
 
-  async adminCreate(adminCreateProductDto: AdminCreateProductDto): Promise<Product> {
+  async adminCreate(
+    adminCreateProductDto: AdminCreateProductDto,
+  ): Promise<Product> {
     // Verify category exists
     const category = await this.categoriesRepository.findOne({
       where: { id: adminCreateProductDto.categoryId },
@@ -182,10 +217,13 @@ export class ProductsService {
     return this.productsRepository.save(product);
   }
 
-  async adminFindAll(query: GetProductsDto): Promise<PaginationResult<Product>> {
+  async adminFindAll(
+    query: GetProductsDto,
+  ): Promise<PaginationResult<Product>> {
     const { page = 1, limit = 10, search, categoryId, sortByName } = query;
 
-    const queryBuilder = this.productsRepository.createQueryBuilder('product')
+    const queryBuilder = this.productsRepository
+      .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.store', 'store')
@@ -199,7 +237,9 @@ export class ProductsService {
     }
 
     if (categoryId) {
-      queryBuilder.andWhere('product.category_id = :categoryId', { categoryId });
+      queryBuilder.andWhere('product.category_id = :categoryId', {
+        categoryId,
+      });
     }
 
     queryBuilder
@@ -227,11 +267,17 @@ export class ProductsService {
     return this.findOne(id);
   }
 
-  async adminUpdate(id: string, adminUpdateProductDto: AdminUpdateProductDto): Promise<Product> {
+  async adminUpdate(
+    id: string,
+    adminUpdateProductDto: AdminUpdateProductDto,
+  ): Promise<Product> {
     const product = await this.findOne(id);
 
     // If categoryId is being updated, verify the new category exists
-    if (adminUpdateProductDto.categoryId && adminUpdateProductDto.categoryId !== product.categoryId) {
+    if (
+      adminUpdateProductDto.categoryId &&
+      adminUpdateProductDto.categoryId !== product.categoryId
+    ) {
       const category = await this.categoriesRepository.findOne({
         where: { id: adminUpdateProductDto.categoryId },
       });
@@ -242,7 +288,10 @@ export class ProductsService {
     }
 
     // If brandId is being updated, verify the new brand exists
-    if (adminUpdateProductDto.brandId && adminUpdateProductDto.brandId !== product.brandId) {
+    if (
+      adminUpdateProductDto.brandId &&
+      adminUpdateProductDto.brandId !== product.brandId
+    ) {
       const brand = await this.brandsRepository.findOne({
         where: { id: adminUpdateProductDto.brandId },
       });
@@ -253,7 +302,10 @@ export class ProductsService {
     }
 
     // If storeId is being updated, verify the new store exists
-    if (adminUpdateProductDto.storeId && adminUpdateProductDto.storeId !== product.storeId) {
+    if (
+      adminUpdateProductDto.storeId &&
+      adminUpdateProductDto.storeId !== product.storeId
+    ) {
       const store = await this.storesRepository.findOne({
         where: { id: adminUpdateProductDto.storeId },
       });
@@ -263,12 +315,17 @@ export class ProductsService {
       product.store = store;
     }
 
-    if (adminUpdateProductDto.name && adminUpdateProductDto.name !== product.name) {
+    if (
+      adminUpdateProductDto.name &&
+      adminUpdateProductDto.name !== product.name
+    ) {
       const existing = await this.productsRepository.findOne({
         where: { name: adminUpdateProductDto.name },
       });
       if (existing) {
-        throw new ConflictException(`A product with the name "${adminUpdateProductDto.name}" already exists.`);
+        throw new ConflictException(
+          `A product with the name "${adminUpdateProductDto.name}" already exists.`,
+        );
       }
     }
 
@@ -289,7 +346,9 @@ export class ProductsService {
    * then create products from the given product template IDs in that category.
    */
   async addTemplates(storeId: string, dto: AddTemplateDto): Promise<Product[]> {
-    const store = await this.storesRepository.findOne({ where: { id: storeId } });
+    const store = await this.storesRepository.findOne({
+      where: { id: storeId },
+    });
     if (!store) {
       throw new NotFoundException('Store not found');
     }
@@ -323,7 +382,9 @@ export class ProductsService {
           relations: ['categoryTemplate', 'brand'],
         });
         if (!template) {
-          throw new NotFoundException(`Product template not found: ${templateId}`);
+          throw new NotFoundException(
+            `Product template not found: ${templateId}`,
+          );
         }
 
         const productName = `${template.name} - ${store.name || store.id}`;

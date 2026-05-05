@@ -27,7 +27,9 @@ export class BrandsService {
       .andWhere('brand.deletedAt IS NULL');
 
     if (search) {
-      queryBuilder.andWhere('brand.name ILIKE :search', { search: `%${search}%` });
+      queryBuilder.andWhere('brand.name ILIKE :search', {
+        search: `%${search}%`,
+      });
     }
 
     queryBuilder

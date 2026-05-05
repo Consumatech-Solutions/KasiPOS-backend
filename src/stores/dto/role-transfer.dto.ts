@@ -2,7 +2,10 @@ import { IsIn, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RoleTransferDto {
-  @ApiProperty({ description: 'User ID of the staff member who will become store admin and store owner' })
+  @ApiProperty({
+    description:
+      'User ID of the staff member who will become store admin and store owner',
+  })
   @IsUUID()
   newStoreAdminId: string;
 

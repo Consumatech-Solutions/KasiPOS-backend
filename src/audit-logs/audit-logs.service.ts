@@ -32,9 +32,18 @@ export class AuditLogsService {
   }
 
   async findAll(query: GetAuditLogsDto): Promise<PaginationResult<AuditLog>> {
-    const { page = 1, limit = 10, userId, action, entity, startDate, endDate } = query;
+    const {
+      page = 1,
+      limit = 10,
+      userId,
+      action,
+      entity,
+      startDate,
+      endDate,
+    } = query;
 
-    const queryBuilder = this.auditLogsRepository.createQueryBuilder('audit_log')
+    const queryBuilder = this.auditLogsRepository
+      .createQueryBuilder('audit_log')
       .leftJoinAndSelect('audit_log.user', 'user');
 
     if (userId) {
@@ -46,7 +55,9 @@ export class AuditLogsService {
     }
 
     if (entity) {
-      queryBuilder.andWhere('audit_log.entity ILIKE :entity', { entity: `%${entity}%` });
+      queryBuilder.andWhere('audit_log.entity ILIKE :entity', {
+        entity: `%${entity}%`,
+      });
     }
 
     if (startDate) {

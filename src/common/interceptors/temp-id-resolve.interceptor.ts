@@ -29,15 +29,21 @@ export class TempIdResolveInterceptor implements NestInterceptor {
     ).pipe(
       switchMap(([body, query, params]) => {
         if (body != null && typeof body === 'object') {
-          Object.keys(request.body || {}).forEach((k) => delete request.body[k]);
+          Object.keys(request.body || {}).forEach(
+            (k) => delete request.body[k],
+          );
           Object.assign(request.body, body);
         }
         if (query != null && typeof query === 'object') {
-          Object.keys(request.query || {}).forEach((k) => delete request.query[k]);
+          Object.keys(request.query || {}).forEach(
+            (k) => delete request.query[k],
+          );
           Object.assign(request.query, query);
         }
         if (params != null && typeof params === 'object') {
-          Object.keys(request.params || {}).forEach((k) => delete request.params[k]);
+          Object.keys(request.params || {}).forEach(
+            (k) => delete request.params[k],
+          );
           Object.assign(request.params, params);
         }
         return next.handle();

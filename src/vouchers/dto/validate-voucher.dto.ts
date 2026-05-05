@@ -11,7 +11,9 @@ export class ValidateVoucherDto {
   @Min(0)
   cartTotal: number;
 
-  @ApiPropertyOptional({ description: 'Customer ID (for per-customer usage limits)' })
+  @ApiPropertyOptional({
+    description: 'Customer ID (for per-customer usage limits)',
+  })
   @IsOptional()
   @IsUUID()
   customerId?: string;

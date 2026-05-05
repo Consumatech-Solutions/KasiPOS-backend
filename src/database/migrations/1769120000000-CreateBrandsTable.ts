@@ -1,9 +1,8 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateBrandsTable1769120000000 implements MigrationInterface {
-
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             CREATE TABLE "brands" (
                 "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
                 "name" varchar NOT NULL,
@@ -16,13 +15,13 @@ export class CreateBrandsTable1769120000000 implements MigrationInterface {
             );
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE INDEX "IDX_brands_name" ON "brands" ("name");
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP INDEX "IDX_brands_name";`);
-        await queryRunner.query(`DROP TABLE "brands";`);
-    }
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP INDEX "IDX_brands_name";`);
+    await queryRunner.query(`DROP TABLE "brands";`);
+  }
 }

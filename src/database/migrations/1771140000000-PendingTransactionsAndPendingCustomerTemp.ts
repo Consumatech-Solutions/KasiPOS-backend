@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class PendingTransactionsAndPendingCustomerTemp1771140000000
-  implements MigrationInterface
-{
+export class PendingTransactionsAndPendingCustomerTemp1771140000000 implements MigrationInterface {
   name = 'PendingTransactionsAndPendingCustomerTemp1771140000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -33,8 +31,12 @@ export class PendingTransactionsAndPendingCustomerTemp1771140000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_pending_transactions_unresolved_gin"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_pending_transactions_store_id"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_pending_transactions_unresolved_gin"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_pending_transactions_store_id"`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS "pending_transactions"`);
 
     await queryRunner.query(`

@@ -17,7 +17,12 @@ export class PendingTransaction {
   @Column({ type: 'jsonb' })
   payload: CreateTransactionDto;
 
-  @Column({ name: 'unresolved_temp_ids', type: 'text', array: true, default: '{}' })
+  @Column({
+    name: 'unresolved_temp_ids',
+    type: 'text',
+    array: true,
+    default: '{}',
+  })
   unresolvedTempIds: string[];
 
   @CreateDateColumn({ name: 'created_at' })

@@ -4,9 +4,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * Replace category_id with category_template_id on product_templates.
  * Category templates were created from distinct category names; link by name.
  */
-export class ProductTemplatesCategoryTemplateId1771000000000
-  implements MigrationInterface
-{
+export class ProductTemplatesCategoryTemplateId1771000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "product_templates"

@@ -20,7 +20,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any) {
     // Don't allow temp tokens for protected routes
     if (payload.temp) {
-      throw new UnauthorizedException('Temporary token cannot be used for this operation');
+      throw new UnauthorizedException(
+        'Temporary token cannot be used for this operation',
+      );
     }
 
     const user = await this.authService.validateUser(payload.sub, payload.tv);

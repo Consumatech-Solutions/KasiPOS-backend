@@ -1,5 +1,20 @@
-import { Controller, Post, Body, Get, Patch, UseGuards, Request, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Patch,
+  UseGuards,
+  Request,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -13,12 +28,13 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
   @Post('request-otp')
   @ApiOperation({
     summary: 'Request OTP code',
-    description: 'Send a one-time password (OTP) to the user\'s phone number via SMS. User must exist in the system.'
+    description:
+      "Send a one-time password (OTP) to the user's phone number via SMS. User must exist in the system.",
   })
   @ApiBody({ type: RequestOtpDto })
   @ApiResponse({
@@ -27,11 +43,14 @@ export class AuthController {
     schema: {
       example: {
         success: true,
-        message: 'OTP sent successfully'
-      }
-    }
+        message: 'OTP sent successfully',
+      },
+    },
   })
-  @ApiResponse({ status: 404, description: 'User not found. Please contact admin for access.' })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found. Please contact admin for access.',
+  })
   @ApiResponse({ status: 401, description: 'User account is inactive' })
   @ApiResponse({ status: 400, description: 'Failed to send OTP' })
   async requestOtp(@Body() requestOtpDto: RequestOtpDto) {
@@ -41,7 +60,8 @@ export class AuthController {
   @Post('verify-otp')
   @ApiOperation({
     summary: 'Verify OTP code',
-    description: 'Verify the OTP code sent to the user\'s phone. Returns a temporary token and user information.'
+    description:
+      "Verify the OTP code sent to the user's phone. Returns a temporary token and user information.",
   })
   @ApiBody({ type: VerifyOtpDto })
   @ApiResponse({
@@ -57,10 +77,10 @@ export class AuthController {
           email: 'admin@kasipos.demo',
           name: 'John Doe',
           role: 'staff',
-          storeId: 'uuid-here'
-        }
-      }
-    }
+          storeId: 'uuid-here',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired OTP code' })
   @ApiResponse({ status: 404, description: 'User not found' })
@@ -73,7 +93,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Set user password',
-    description: 'Set password for a new user. Requires a temporary token obtained from OTP verification.'
+    description:
+      'Set password for a new user. Requires a temporary token obtained from OTP verification.',
   })
   @ApiBody({ type: SetPasswordDto })
   @ApiResponse({
@@ -90,12 +111,15 @@ export class AuthController {
           storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
-          updatedAt: '2026-01-20T08:00:00.000Z'
-        }
-      }
-    }
+          updatedAt: '2026-01-20T08:00:00.000Z',
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing temporary token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing temporary token',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   async setPassword(@Request() req, @Body() setPasswordDto: SetPasswordDto) {
     return this.authService.setPassword(req.user.id, setPasswordDto.password);
@@ -104,7 +128,8 @@ export class AuthController {
   @Post('set-password-store-admin')
   @ApiOperation({
     summary: 'Set password for store admin',
-    description: 'Store admin provides phone, temporary password (from SMS), and new password. Returns access token.'
+    description:
+      'Store admin provides phone, temporary password (from SMS), and new password. Returns access token.',
   })
   @ApiBody({ type: SetPasswordStoreAdminDto })
   @ApiResponse({
@@ -121,27 +146,42 @@ export class AuthController {
           storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
-          updatedAt: '2026-01-20T08:00:00.000Z'
-        }
-      }
-    }
+          updatedAt: '2026-01-20T08:00:00.000Z',
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Invalid temporary password or not a store admin' })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid temporary password or not a store admin',
+  })
   @ApiResponse({ status: 404, description: 'User not found' })
   async setPasswordStoreAdmin(@Body() dto: SetPasswordStoreAdminDto) {
     if (dto.token) {
-      return this.authService.setPasswordStoreAdmin('', '', dto.newPassword, dto.token);
+      return this.authService.setPasswordStoreAdmin(
+        '',
+        '',
+        dto.newPassword,
+        dto.token,
+      );
     }
     if (!dto.phone || !dto.temporaryPassword) {
-      throw new BadRequestException('Provide either token (from reset link) or phone + temporaryPassword');
+      throw new BadRequestException(
+        'Provide either token (from reset link) or phone + temporaryPassword',
+      );
     }
-    return this.authService.setPasswordStoreAdmin(dto.phone, dto.temporaryPassword, dto.newPassword);
+    return this.authService.setPasswordStoreAdmin(
+      dto.phone,
+      dto.temporaryPassword,
+      dto.newPassword,
+    );
   }
 
   @Post('login')
   @ApiOperation({
     summary: 'Login with phone and password',
-    description: 'Authenticate user with phone number and password. Returns JWT access token.'
+    description:
+      'Authenticate user with phone number and password. Returns JWT access token.',
   })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -158,12 +198,15 @@ export class AuthController {
           storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
-          updatedAt: '2026-01-20T08:00:00.000Z'
-        }
-      }
-    }
+          updatedAt: '2026-01-20T08:00:00.000Z',
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Invalid credentials or user account is inactive' })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid credentials or user account is inactive',
+  })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.loginByPhone(loginDto.phone, loginDto.password);
   }
@@ -171,7 +214,8 @@ export class AuthController {
   @Post('admin/login')
   @ApiOperation({
     summary: 'Admin login with email and password',
-    description: 'Authenticate admin user with email and password. Returns JWT access token. Only admin users can use this endpoint.'
+    description:
+      'Authenticate admin user with email and password. Returns JWT access token. Only admin users can use this endpoint.',
   })
   @ApiBody({ type: AdminLoginDto })
   @ApiResponse({
@@ -188,14 +232,21 @@ export class AuthController {
           storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
-          updatedAt: '2026-01-20T08:00:00.000Z'
-        }
-      }
-    }
+          updatedAt: '2026-01-20T08:00:00.000Z',
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Invalid credentials, user account is inactive, or access denied (non-admin user)' })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Invalid credentials, user account is inactive, or access denied (non-admin user)',
+  })
   async adminLogin(@Body() adminLoginDto: AdminLoginDto) {
-    return this.authService.adminLogin(adminLoginDto.email, adminLoginDto.password);
+    return this.authService.adminLogin(
+      adminLoginDto.email,
+      adminLoginDto.password,
+    );
   }
 
   @Get('profile')
@@ -203,7 +254,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get current user profile',
-    description: 'Retrieve the authenticated user\'s profile information. Requires valid JWT token.'
+    description:
+      "Retrieve the authenticated user's profile information. Requires valid JWT token.",
   })
   @ApiResponse({
     status: 200,
@@ -217,11 +269,14 @@ export class AuthController {
         storeId: 'uuid-here',
         isActive: true,
         createdAt: '2026-01-20T08:00:00.000Z',
-        updatedAt: '2026-01-20T08:00:00.000Z'
-      }
-    }
+        updatedAt: '2026-01-20T08:00:00.000Z',
+      },
+    },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
   async getProfile(@Request() req) {
     return req.user;
   }
@@ -231,7 +286,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update current user profile',
-    description: 'Update the authenticated user\'s profile information (e.g. name).'
+    description:
+      "Update the authenticated user's profile information (e.g. name).",
   })
   @ApiBody({ type: UpdateProfileDto })
   @ApiResponse({
@@ -246,11 +302,14 @@ export class AuthController {
         storeId: 'uuid-here',
         isActive: true,
         createdAt: '2026-01-20T08:00:00.000Z',
-        updatedAt: '2026-01-20T08:05:00.000Z'
-      }
-    }
+        updatedAt: '2026-01-20T08:05:00.000Z',
+      },
+    },
   })
-  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+  async updateProfile(
+    @Request() req,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
     return this.authService.updateProfile(req.user.id, updateProfileDto);
   }
 
@@ -259,16 +318,16 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Logout user',
-    description: 'Invalidate user session (server-side if applicable).'
+    description: 'Invalidate user session (server-side if applicable).',
   })
   @ApiResponse({
     status: 200,
     description: 'Logged out successfully',
     schema: {
       example: {
-        message: 'Logged out successfully'
-      }
-    }
+        message: 'Logged out successfully',
+      },
+    },
   })
   async logout(@Request() req) {
     return this.authService.logout(req.user.id);

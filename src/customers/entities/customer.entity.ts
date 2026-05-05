@@ -24,7 +24,13 @@ export class Customer {
   @Column({ name: 'loyalty_points', type: 'int', default: 0 })
   loyaltyPoints: number;
 
-  @Column({ name: 'outstanding_credit', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    name: 'outstanding_credit',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
   outstandingCredit: number;
 
   @Column({ name: 'store_id', nullable: true })

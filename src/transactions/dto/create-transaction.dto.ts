@@ -30,11 +30,14 @@ export class TransactionDiscountDto {
 }
 
 /** UUID or temp-X (resolved to server ID by TempIdResolveInterceptor before use). */
-const UUID_OR_TEMP = /^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|temp-\d+)$/i;
+const UUID_OR_TEMP =
+  /^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|temp-\d+)$/i;
 
 class CreateTransactionItemDto {
   @IsString()
-  @Matches(UUID_OR_TEMP, { message: 'productId must be a UUID or a temp ID (temp-<number>)' })
+  @Matches(UUID_OR_TEMP, {
+    message: 'productId must be a UUID or a temp ID (temp-<number>)',
+  })
   productId: string;
 
   @IsString()
@@ -59,7 +62,10 @@ class CreateTransactionItemDto {
 }
 
 export class CreditDetailsDto {
-  @ApiPropertyOptional({ description: 'Expected payment date (ISO 8601)', example: '2026-04-01' })
+  @ApiPropertyOptional({
+    description: 'Expected payment date (ISO 8601)',
+    example: '2026-04-01',
+  })
   @IsOptional()
   @IsDateString()
   paymentDate?: string;
@@ -76,7 +82,9 @@ export class CreateTransactionDto {
 
   @IsOptional()
   @IsString()
-  @Matches(UUID_OR_TEMP, { message: 'customerId must be a UUID or a temp ID (temp-<number>)' })
+  @Matches(UUID_OR_TEMP, {
+    message: 'customerId must be a UUID or a temp ID (temp-<number>)',
+  })
   customerId?: string;
 
   @IsArray()
@@ -101,7 +109,8 @@ export class CreateTransactionDto {
   discount?: TransactionDiscountDto;
 
   @ApiPropertyOptional({
-    description: 'Required when paymentMethod is "Credit": paymentDate (optional), note (optional)',
+    description:
+      'Required when paymentMethod is "Credit": paymentDate (optional), note (optional)',
   })
   @IsOptional()
   @ValidateNested()

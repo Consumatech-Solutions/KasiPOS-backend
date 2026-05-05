@@ -43,7 +43,9 @@ export class TransactionsController {
     description:
       '{ status: "committed", transaction } or { status: "pending", pendingTransactionId }',
   })
-  async create(@Body() dto: CreateTransactionDto): Promise<CreateTransactionResult> {
+  async create(
+    @Body() dto: CreateTransactionDto,
+  ): Promise<CreateTransactionResult> {
     return this.transactionsService.create(dto);
   }
 

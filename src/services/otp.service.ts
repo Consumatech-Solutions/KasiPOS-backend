@@ -19,9 +19,12 @@ export class OtpService {
     private readonly smsService: SmsService,
   ) {}
 
-  async sendOtp(phoneNumber: string): Promise<{ success: boolean; messageId?: string }> {
+  async sendOtp(
+    phoneNumber: string,
+  ): Promise<{ success: boolean; messageId?: string }> {
     const codeLength = this.configService.get<number>('otp.codeLength') ?? 4;
-    const expiryMinutes = this.configService.get<number>('otp.expiryMinutes') ?? 10;
+    const expiryMinutes =
+      this.configService.get<number>('otp.expiryMinutes') ?? 10;
 
     const code = this.generateNumericOtp(codeLength);
     const key = this.phoneKey(phoneNumber);
@@ -46,19 +49,25 @@ export class OtpService {
     const entry = this.store.get(key);
 
     if (!entry) {
-      this.logger.warn(`OTP verify: no pending code for ${this.maskPhone(phoneNumber)}`);
+      this.logger.warn(
+        `OTP verify: no pending code for ${this.maskPhone(phoneNumber)}`,
+      );
       return false;
     }
 
     if (Date.now() > entry.expiresAt) {
       this.store.delete(key);
-      this.logger.warn(`OTP verify: expired for ${this.maskPhone(phoneNumber)}`);
+      this.logger.warn(
+        `OTP verify: expired for ${this.maskPhone(phoneNumber)}`,
+      );
       return false;
     }
 
     const normalized = code.replace(/\s/g, '');
     if (!this.codesEqual(normalized, entry.code)) {
-      this.logger.warn(`OTP verify: invalid code for ${this.maskPhone(phoneNumber)}`);
+      this.logger.warn(
+        `OTP verify: invalid code for ${this.maskPhone(phoneNumber)}`,
+      );
       return false;
     }
 

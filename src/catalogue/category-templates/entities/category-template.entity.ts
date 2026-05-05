@@ -26,6 +26,9 @@ export class CategoryTemplate {
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date | null;
 
-  @OneToMany(() => ProductTemplate, (productTemplate) => productTemplate.categoryTemplate)
+  @OneToMany(
+    () => ProductTemplate,
+    (productTemplate) => productTemplate.categoryTemplate,
+  )
   productTemplates: ProductTemplate[];
 }

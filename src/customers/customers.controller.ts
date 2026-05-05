@@ -62,7 +62,11 @@ export class CustomersController {
     @Request() req?: any,
   ) {
     const storeId = req?.user?.storeId ?? createCustomerDto.storeId;
-    return this.customersService.create(createCustomerDto, tempIdFromBody, storeId);
+    return this.customersService.create(
+      createCustomerDto,
+      tempIdFromBody,
+      storeId,
+    );
   }
 
   @Get()

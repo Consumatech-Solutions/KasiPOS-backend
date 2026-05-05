@@ -1,15 +1,14 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddAdminFieldsToStoresTable1769110000000 implements MigrationInterface {
-
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        // Create store_status_enum
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // Create store_status_enum
+    await queryRunner.query(`
             CREATE TYPE "store_status_enum" AS ENUM('active', 'inactive');
         `);
 
-        // Add new columns to stores table
-        await queryRunner.query(`
+    // Add new columns to stores table
+    await queryRunner.query(`
             ALTER TABLE "stores"
             ADD COLUMN "client_id" uuid,
             ADD COLUMN "contact_number" varchar,
@@ -21,35 +20,35 @@ export class AddAdminFieldsToStoresTable1769110000000 implements MigrationInterf
             ADD COLUMN "trading_hours" jsonb
         `);
 
-        // Add foreign key constraint for client_id
-        await queryRunner.query(`
+    // Add foreign key constraint for client_id
+    await queryRunner.query(`
             ALTER TABLE "stores"
             ADD CONSTRAINT "FK_stores_client_id" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE SET NULL
         `);
 
-        // Add index on client_id
-        await queryRunner.query(`
+    // Add index on client_id
+    await queryRunner.query(`
             CREATE INDEX "IDX_stores_client_id" ON "stores" ("client_id")
         `);
 
-        // Add index on initial_status
-        await queryRunner.query(`
+    // Add index on initial_status
+    await queryRunner.query(`
             CREATE INDEX "IDX_stores_initial_status" ON "stores" ("initial_status")
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        // Drop indexes
-        await queryRunner.query(`DROP INDEX "IDX_stores_initial_status";`);
-        await queryRunner.query(`DROP INDEX "IDX_stores_client_id";`);
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Drop indexes
+    await queryRunner.query(`DROP INDEX "IDX_stores_initial_status";`);
+    await queryRunner.query(`DROP INDEX "IDX_stores_client_id";`);
 
-        // Drop foreign key constraint
-        await queryRunner.query(`
+    // Drop foreign key constraint
+    await queryRunner.query(`
             ALTER TABLE "stores" DROP CONSTRAINT "FK_stores_client_id"
         `);
 
-        // Drop columns
-        await queryRunner.query(`
+    // Drop columns
+    await queryRunner.query(`
             ALTER TABLE "stores"
             DROP COLUMN "trading_hours",
             DROP COLUMN "enabled_modules",
@@ -61,7 +60,7 @@ export class AddAdminFieldsToStoresTable1769110000000 implements MigrationInterf
             DROP COLUMN "client_id"
         `);
 
-        // Drop enum type
-        await queryRunner.query(`DROP TYPE "store_status_enum";`);
-    }
+    // Drop enum type
+    await queryRunner.query(`DROP TYPE "store_status_enum";`);
+  }
 }

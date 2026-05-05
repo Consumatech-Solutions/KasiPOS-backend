@@ -68,7 +68,10 @@ export class ProductsController {
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  async create(@Body() createProductDto: CreateProductDto, @Request() req: any) {
+  async create(
+    @Body() createProductDto: CreateProductDto,
+    @Request() req: any,
+  ) {
     return this.productsService.create(createProductDto, req.user.storeId);
   }
 
@@ -94,14 +97,26 @@ export class ProductsController {
       ],
     },
   })
-  @ApiResponse({ status: 400, description: 'Store ID required (body.storeId for admin or store admin context)' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Store ID required (body.storeId for admin or store admin context)',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Category template or product template not found' })
-  @ApiResponse({ status: 409, description: 'Product with this name already exists in store' })
+  @ApiResponse({
+    status: 404,
+    description: 'Category template or product template not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Product with this name already exists in store',
+  })
   async addTemplate(@Request() req: any, @Body() dto: AddTemplateDto) {
     const storeId = dto.storeId ?? req.user?.storeId;
     if (!storeId) {
-      throw new BadRequestException('Store ID is required (set storeId in body for admin or use store admin context).');
+      throw new BadRequestException(
+        'Store ID is required (set storeId in body for admin or use store admin context).',
+      );
     }
     return this.productsService.addTemplates(storeId, dto);
   }
@@ -314,7 +329,8 @@ export class ProductsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create a new product (admin only)',
-    description: 'Create a new product with admin fields like brand, supplier, and unit of measure. Requires admin role.',
+    description:
+      'Create a new product with admin fields like brand, supplier, and unit of measure. Requires admin role.',
   })
   @ApiResponse({
     status: 201,
@@ -342,9 +358,15 @@ export class ProductsController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Category or Brand not found' })
-  @ApiResponse({ status: 409, description: 'Product with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Product with this name already exists',
+  })
   async adminCreate(@Body() adminCreateProductDto: AdminCreateProductDto) {
     return this.productsService.adminCreate(adminCreateProductDto);
   }
@@ -354,7 +376,8 @@ export class ProductsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'List all products (admin only)',
-    description: 'Retrieve a paginated list of all products with full admin details. Requires admin role.',
+    description:
+      'Retrieve a paginated list of all products with full admin details. Requires admin role.',
   })
   @ApiQuery({
     name: 'page',
@@ -423,7 +446,10 @@ export class ProductsController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   async adminFindAll(@Query() query: GetProductsDto) {
     return this.productsService.adminFindAll(query);
   }
@@ -433,7 +459,8 @@ export class ProductsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get product by ID (admin only)',
-    description: 'Retrieve a specific product with all admin fields. Requires admin role.',
+    description:
+      'Retrieve a specific product with all admin fields. Requires admin role.',
   })
   @ApiParam({
     name: 'id',
@@ -445,7 +472,10 @@ export class ProductsController {
     description: 'Product retrieved successfully',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async adminFindOne(@Param('id') id: string) {
     return this.productsService.adminFindOne(id);
@@ -468,9 +498,18 @@ export class ProductsController {
     description: 'Product updated successfully',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
-  @ApiResponse({ status: 404, description: 'Product, Category, or Brand not found' })
-  @ApiResponse({ status: 409, description: 'Product with this name already exists' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Product, Category, or Brand not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Product with this name already exists',
+  })
   async adminUpdate(
     @Param('id') id: string,
     @Body() adminUpdateProductDto: AdminUpdateProductDto,
@@ -500,7 +539,10 @@ export class ProductsController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async adminRemove(@Param('id') id: string) {
     await this.productsService.adminRemove(id);

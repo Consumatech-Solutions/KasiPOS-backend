@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { StockAdjustment, StockAdjustmentReason } from './entities/stock-adjustment.entity';
+import {
+  StockAdjustment,
+  StockAdjustmentReason,
+} from './entities/stock-adjustment.entity';
 import { Product } from '../catalogue/products/entities/product.entity';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 import { GetStockAdjustmentsDto } from './dto/get-stock-adjustments.dto';
@@ -17,7 +20,10 @@ export class StockAdjustmentsService {
     private dataSource: DataSource,
   ) {}
 
-  async create(dto: CreateStockAdjustmentDto, storeId: string): Promise<StockAdjustment> {
+  async create(
+    dto: CreateStockAdjustmentDto,
+    storeId: string,
+  ): Promise<StockAdjustment> {
     return this.dataSource.transaction(async (manager) => {
       // Get product with lock to prevent race conditions
       const product = await manager.getRepository(Product).findOne({
@@ -51,7 +57,10 @@ export class StockAdjustmentsService {
     });
   }
 
-  async findAll(query: GetStockAdjustmentsDto, storeId: string): Promise<PaginationResult<StockAdjustment>> {
+  async findAll(
+    query: GetStockAdjustmentsDto,
+    storeId: string,
+  ): Promise<PaginationResult<StockAdjustment>> {
     const { page = 1, limit = 10, productId } = query;
 
     const where: any = { storeId };
@@ -78,7 +87,10 @@ export class StockAdjustmentsService {
     };
   }
 
-  async findByProduct(productId: string, storeId: string): Promise<StockAdjustment[]> {
+  async findByProduct(
+    productId: string,
+    storeId: string,
+  ): Promise<StockAdjustment[]> {
     return this.stockAdjustmentsRepository.find({
       where: { productId, storeId },
       relations: ['product', 'store'],

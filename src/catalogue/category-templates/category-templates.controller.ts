@@ -42,7 +42,10 @@ export class CategoryTemplatesController {
   @ApiResponse({ status: 201, description: 'Category template created' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
-  @ApiResponse({ status: 409, description: 'Template with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Template with this name already exists',
+  })
   async create(@Body() dto: CreateCategoryTemplateDto) {
     return this.categoryTemplatesService.create(dto);
   }
@@ -55,22 +58,27 @@ export class CategoryTemplatesController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Category templates list' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin or Store Admin required',
+  })
   async findAll(@Query() query: PaginationDto) {
-    return this.categoryTemplatesService.findAll(
-      query.page,
-      query.limit,
-    );
+    return this.categoryTemplatesService.findAll(query.page, query.limit);
   }
 
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
-  @ApiOperation({ summary: 'Get category template by ID (admin or store admin)' })
+  @ApiOperation({
+    summary: 'Get category template by ID (admin or store admin)',
+  })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Category template' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin or Store Admin required',
+  })
   @ApiResponse({ status: 404, description: 'Category template not found' })
   async findOne(@Param('id') id: string) {
     return this.categoryTemplatesService.findOne(id);
@@ -85,7 +93,10 @@ export class CategoryTemplatesController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
   @ApiResponse({ status: 404, description: 'Category template not found' })
-  @ApiResponse({ status: 409, description: 'Template with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Template with this name already exists',
+  })
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateCategoryTemplateDto,

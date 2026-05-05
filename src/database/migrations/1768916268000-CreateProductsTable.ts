@@ -1,9 +1,8 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateProductsTable1768916268000 implements MigrationInterface {
-
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             CREATE TABLE "products" (
                 "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
                 "name" varchar NOT NULL,
@@ -20,24 +19,23 @@ export class CreateProductsTable1768916268000 implements MigrationInterface {
             );
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE INDEX "IDX_products_name" ON "products" ("name");
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE INDEX "IDX_products_category_id" ON "products" ("category_id");
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE INDEX "IDX_products_bar_code" ON "products" ("bar_code");
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP INDEX "IDX_products_bar_code";`);
-        await queryRunner.query(`DROP INDEX "IDX_products_category_id";`);
-        await queryRunner.query(`DROP INDEX "IDX_products_name";`);
-        await queryRunner.query(`DROP TABLE "products";`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP INDEX "IDX_products_bar_code";`);
+    await queryRunner.query(`DROP INDEX "IDX_products_category_id";`);
+    await queryRunner.query(`DROP INDEX "IDX_products_name";`);
+    await queryRunner.query(`DROP TABLE "products";`);
+  }
 }

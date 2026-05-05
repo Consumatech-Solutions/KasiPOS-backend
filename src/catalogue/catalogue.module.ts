@@ -5,7 +5,17 @@ import { ProductsModule } from './products/products.module';
 import { ProductTemplatesModule } from './product-templates/product-templates.module';
 
 @Module({
-  imports: [CategoriesModule, CategoryTemplatesModule, ProductsModule, ProductTemplatesModule],
-  exports: [CategoriesModule, CategoryTemplatesModule, ProductsModule, ProductTemplatesModule],
+  imports: [
+    CategoriesModule,
+    CategoryTemplatesModule,
+    ProductsModule,
+    ProductTemplatesModule,
+  ],
+  exports: [
+    CategoriesModule,
+    CategoryTemplatesModule,
+    ProductsModule,
+    ProductTemplatesModule,
+  ],
 })
 export class CatalogueModule {}

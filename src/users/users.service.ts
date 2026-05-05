@@ -65,7 +65,10 @@ export class UsersService {
     dto: Omit<CreateUserDto, 'email'> & { email: string; password: string },
   ): Promise<User> {
     const { password, ...rest } = dto;
-    const user = this.usersRepository.create({ ...rest, passwordHash: password } as any);
+    const user = this.usersRepository.create({
+      ...rest,
+      passwordHash: password,
+    } as any);
     const saved = await this.usersRepository.save(user);
     return Array.isArray(saved) ? saved[0] : saved;
   }

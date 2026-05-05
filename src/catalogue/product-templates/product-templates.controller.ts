@@ -49,7 +49,10 @@ export class ProductTemplatesController {
   @ApiResponse({ status: 201, description: 'Product template created.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin required' })
-  @ApiResponse({ status: 409, description: 'Template with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Template with this name already exists',
+  })
   async create(@Body() dto: CreateProductTemplateDto) {
     return this.productTemplatesService.create(dto);
   }
@@ -59,13 +62,19 @@ export class ProductTemplatesController {
   @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN)
   @ApiOperation({
     summary: 'List product templates (admin or store admin)',
-    description: 'Paginated list of product templates with optional search and category template filter.',
+    description:
+      'Paginated list of product templates with optional search and category template filter.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'categoryTemplateId', required: false, type: String })
-  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Filter templates not yet assigned to this store' })
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    description: 'Filter templates not yet assigned to this store',
+  })
   @ApiQuery({
     name: 'sortByName',
     required: false,
@@ -74,7 +83,10 @@ export class ProductTemplatesController {
   })
   @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin or Store Admin required',
+  })
   async findAll(@Query() query: GetProductTemplatesDto) {
     return this.productTemplatesService.findAll(query);
   }
@@ -85,11 +97,14 @@ export class ProductTemplatesController {
   @ApiOperation({
     summary: 'List product templates for store (admin or store admin)',
     description:
-      'Returns all product templates with category template and brand, for the Add Templates flow. Optionally excludes templates already assigned to the authenticated store admin\'s store.',
+      "Returns all product templates with category template and brand, for the Add Templates flow. Optionally excludes templates already assigned to the authenticated store admin's store.",
   })
   @ApiResponse({ status: 200, description: 'Product templates retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin or Store Admin required',
+  })
   async findAllForStore(@Request() req: any) {
     const storeId = req.user?.storeId;
     return this.productTemplatesService.findAllForStore(storeId);
@@ -104,7 +119,10 @@ export class ProductTemplatesController {
   @ApiParam({ name: 'id', type: String, description: 'Template UUID' })
   @ApiResponse({ status: 200, description: 'Product template retrieved.' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin or Store Admin required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin or Store Admin required',
+  })
   @ApiResponse({ status: 404, description: 'Product template not found' })
   async findOne(@Param('id') id: string) {
     return this.productTemplatesService.findOne(id);
@@ -121,11 +139,11 @@ export class ProductTemplatesController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin required' })
   @ApiResponse({ status: 404, description: 'Product template not found' })
-  @ApiResponse({ status: 409, description: 'Template with this name already exists' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateProductTemplateDto,
-  ) {
+  @ApiResponse({
+    status: 409,
+    description: 'Template with this name already exists',
+  })
+  async update(@Param('id') id: string, @Body() dto: UpdateProductTemplateDto) {
     return this.productTemplatesService.update(id, dto);
   }
 
@@ -155,11 +173,17 @@ export class ProductTemplatesController {
   })
   @ApiParam({ name: 'id', type: String, description: 'Template UUID' })
   @ApiResponse({ status: 201, description: 'Product created for the store.' })
-  @ApiResponse({ status: 400, description: 'Category required on template or in request' })
+  @ApiResponse({
+    status: 400,
+    description: 'Category required on template or in request',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin required' })
   @ApiResponse({ status: 404, description: 'Template or store not found' })
-  @ApiResponse({ status: 409, description: 'Product with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Product with this name already exists',
+  })
   async assignToStore(
     @Param('id') id: string,
     @Body() dto: AssignTemplateToStoreDto,
@@ -177,7 +201,10 @@ export class ProductTemplatesController {
   })
   @ApiParam({ name: 'id', type: String, description: 'Template UUID' })
   @ApiResponse({ status: 201, description: 'Products created for all stores.' })
-  @ApiResponse({ status: 400, description: 'Category required on template or in request' })
+  @ApiResponse({
+    status: 400,
+    description: 'Category required on template or in request',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin required' })
   @ApiResponse({ status: 404, description: 'Template not found' })

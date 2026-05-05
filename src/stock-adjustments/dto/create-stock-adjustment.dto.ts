@@ -1,4 +1,11 @@
-import { IsUUID, IsInt, IsEnum, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsUUID,
+  IsInt,
+  IsEnum,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StockAdjustmentReason } from '../entities/stock-adjustment.entity';
 
@@ -12,7 +19,10 @@ export class CreateStockAdjustmentDto {
   @Min(0)
   newStock: number;
 
-  @ApiProperty({ enum: StockAdjustmentReason, description: 'Reason for adjustment' })
+  @ApiProperty({
+    enum: StockAdjustmentReason,
+    description: 'Reason for adjustment',
+  })
   @IsEnum(StockAdjustmentReason)
   reason: StockAdjustmentReason;
 

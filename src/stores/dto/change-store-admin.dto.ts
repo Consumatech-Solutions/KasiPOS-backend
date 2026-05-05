@@ -10,18 +10,24 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class NewStoreAdminDto {
-  @ApiPropertyOptional({ description: 'Existing user ID to promote to store admin' })
+  @ApiPropertyOptional({
+    description: 'Existing user ID to promote to store admin',
+  })
   @IsOptional()
   @IsUUID()
   userId?: string;
 
-  @ApiPropertyOptional({ description: 'Required with number if userId is omitted' })
+  @ApiPropertyOptional({
+    description: 'Required with number if userId is omitted',
+  })
   @ValidateIf((o) => !o.userId)
   @IsString()
   @IsNotEmpty()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Required with name if userId is omitted' })
+  @ApiPropertyOptional({
+    description: 'Required with name if userId is omitted',
+  })
   @ValidateIf((o) => !o.userId)
   @IsString()
   @IsNotEmpty()

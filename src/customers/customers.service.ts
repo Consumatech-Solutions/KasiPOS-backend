@@ -38,7 +38,11 @@ export class CustomersService {
     });
     const saved = await this.customersRepository.save(customer);
     if (_tempId) {
-      await this.tempIdMappingsService.saveMapping(_tempId, saved.id, 'customer');
+      await this.tempIdMappingsService.saveMapping(
+        _tempId,
+        saved.id,
+        'customer',
+      );
       await this.pendingTransactionSyncService.onCustomerMapped(
         _tempId,
         saved.id,
@@ -50,7 +54,10 @@ export class CustomersService {
       this.welcomeSmsService
         .sendWelcome(saved.contact, saved.name)
         .catch((err) => {
-          this.logger.warn('Welcome SMS failed (customer was created)', err?.message ?? err);
+          this.logger.warn(
+            'Welcome SMS failed (customer was created)',
+            err?.message ?? err,
+          );
         });
     }
     return saved;

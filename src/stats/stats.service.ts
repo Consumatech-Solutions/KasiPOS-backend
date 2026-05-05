@@ -160,9 +160,13 @@ export class StatsService {
     return { total };
   }
 
-  async getTransactionsStats(dateRange?: DateRange | null): Promise<TransactionsStats> {
+  async getTransactionsStats(
+    dateRange?: DateRange | null,
+  ): Promise<TransactionsStats> {
     const qbCount = this.transactionsRepository.createQueryBuilder('t');
-    const qbSum = this.transactionsRepository.createQueryBuilder('t').select('COALESCE(SUM(t.total), 0)', 'sum');
+    const qbSum = this.transactionsRepository
+      .createQueryBuilder('t')
+      .select('COALESCE(SUM(t.total), 0)', 'sum');
     if (dateRange) {
       qbCount.where('t.created_at BETWEEN :start AND :end', {
         start: dateRange.start,
@@ -181,7 +185,9 @@ export class StatsService {
     return { number: count, total };
   }
 
-  async getCampaignsStats(dateRange?: DateRange | null): Promise<CampaignsStats> {
+  async getCampaignsStats(
+    dateRange?: DateRange | null,
+  ): Promise<CampaignsStats> {
     const where: any = {};
     if (dateRange) {
       where.createdAt = Between(dateRange.start, dateRange.end);
@@ -219,7 +225,9 @@ export class StatsService {
     return end;
   }
 
-  async getPendingActionsStats(dateRange?: DateRange | null): Promise<PendingActionsStats> {
+  async getPendingActionsStats(
+    dateRange?: DateRange | null,
+  ): Promise<PendingActionsStats> {
     const wherePO: any = { status: PurchaseOrderStatus.PENDING };
     const whereMO: any = { status: MarketplaceOrderStatus.PENDING };
     if (dateRange) {

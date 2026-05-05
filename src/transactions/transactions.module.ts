@@ -28,4 +28,3 @@ import { TempIdMappingsModule } from '../common/temp-id-mappings/temp-id-mapping
   exports: [TransactionsService, PendingTransactionSyncService],
 })
 export class TransactionsModule {}
-

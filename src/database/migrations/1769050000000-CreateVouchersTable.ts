@@ -31,9 +31,15 @@ export class CreateVouchersTable1769050000000 implements MigrationInterface {
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "IDX_vouchers_store_id" ON "vouchers" ("store_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_vouchers_code" ON "vouchers" ("code")`);
-    await queryRunner.query(`CREATE INDEX "IDX_vouchers_is_active" ON "vouchers" ("is_active")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_vouchers_store_id" ON "vouchers" ("store_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_vouchers_code" ON "vouchers" ("code")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_vouchers_is_active" ON "vouchers" ("is_active")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

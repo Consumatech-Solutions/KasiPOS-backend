@@ -31,21 +31,45 @@ export class CreateMarketplaceOrdersTable1769060000000 implements MigrationInter
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_orders_store_id" ON "marketplace_orders" ("store_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_orders_order_code" ON "marketplace_orders" ("order_code")`);
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_orders_marketplace_store_id" ON "marketplace_orders" ("marketplace_store_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_orders_customer_id" ON "marketplace_orders" ("customer_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_orders_status" ON "marketplace_orders" ("status")`);
-    await queryRunner.query(`CREATE INDEX "IDX_marketplace_orders_created_at" ON "marketplace_orders" ("created_at")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_orders_store_id" ON "marketplace_orders" ("store_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_orders_order_code" ON "marketplace_orders" ("order_code")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_orders_marketplace_store_id" ON "marketplace_orders" ("marketplace_store_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_orders_customer_id" ON "marketplace_orders" ("customer_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_orders_status" ON "marketplace_orders" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_marketplace_orders_created_at" ON "marketplace_orders" ("created_at")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_orders_created_at"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_orders_status"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_orders_customer_id"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_orders_marketplace_store_id"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_orders_order_code"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_marketplace_orders_store_id"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_orders_created_at"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_orders_status"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_orders_customer_id"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_orders_marketplace_store_id"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_orders_order_code"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_marketplace_orders_store_id"`,
+    );
     await queryRunner.query(`DROP TABLE "marketplace_orders"`);
     await queryRunner.query(`DROP TYPE "marketplace_order_status_enum"`);
   }

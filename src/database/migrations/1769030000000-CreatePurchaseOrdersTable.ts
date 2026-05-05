@@ -31,17 +31,31 @@ export class CreatePurchaseOrdersTable1769030000000 implements MigrationInterfac
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "IDX_purchase_orders_store_id" ON "purchase_orders" ("store_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_purchase_orders_order_code" ON "purchase_orders" ("order_code")`);
-    await queryRunner.query(`CREATE INDEX "IDX_purchase_orders_status" ON "purchase_orders" ("status")`);
-    await queryRunner.query(`CREATE INDEX "IDX_purchase_orders_created_at" ON "purchase_orders" ("created_at")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_purchase_orders_store_id" ON "purchase_orders" ("store_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_purchase_orders_order_code" ON "purchase_orders" ("order_code")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_purchase_orders_status" ON "purchase_orders" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_purchase_orders_created_at" ON "purchase_orders" ("created_at")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_purchase_orders_created_at"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_purchase_orders_created_at"`,
+    );
     await queryRunner.query(`DROP INDEX "public"."IDX_purchase_orders_status"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_purchase_orders_order_code"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_purchase_orders_store_id"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_purchase_orders_order_code"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_purchase_orders_store_id"`,
+    );
     await queryRunner.query(`DROP TABLE "purchase_orders"`);
     await queryRunner.query(`DROP TYPE "delivery_method_enum"`);
     await queryRunner.query(`DROP TYPE "purchase_order_status_enum"`);

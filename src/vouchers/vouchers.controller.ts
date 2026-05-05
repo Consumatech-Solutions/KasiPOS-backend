@@ -101,7 +101,7 @@ export class VouchersController {
           limit: 10,
           totalPages: 0,
         },
-      }
+      };
     }
     return this.vouchersService.findAll(query, storeId);
   }
