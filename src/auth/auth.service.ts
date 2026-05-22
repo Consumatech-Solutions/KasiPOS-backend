@@ -3,17 +3,25 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { OtpService } from '../services/otp.service';
-import { User } from '../users/entities/user.entity';
+import { EmailService } from '../services/email.service';
+import { SignupVerificationService } from '../services/signup-verification.service';
+import { User, UserRole } from '../users/entities/user.entity';
 import { StoreAdminResetToken } from './entities/store-admin-reset-token.entity';
+import { Store, StoreStatus } from '../stores/entities/store.entity';
+import { SettingsService } from '../settings/settings.service';
+import { SignupDto } from './dto/signup.dto';
+import { VerifySignupDto } from './dto/verify-signup.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,11 +31,196 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private otpService: OtpService,
+    private emailService: EmailService,
+    private signupVerificationService: SignupVerificationService,
+    private settingsService: SettingsService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private dataSource: DataSource,
     @InjectRepository(StoreAdminResetToken)
     private storeAdminResetTokenRepository: Repository<StoreAdminResetToken>,
   ) {}
+
+  async initiateSignup(
+    dto: SignupDto,
+  ): Promise<{ success: boolean; message: string }> {
+    const email = this.signupVerificationService.normalizeEmail(dto.email);
+
+    if (await this.usersService.findByEmail(email)) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    if (dto.phoneNumber) {
+      const existingPhone = await this.usersService.findByPhone(dto.phoneNumber);
+      if (existingPhone) {
+        throw new ConflictException(
+          'An account with this phone number already exists',
+        );
+      }
+    }
+
+    const { code } = this.signupVerificationService.createPending({
+      email,
+      name: dto.name.trim(),
+      storeName: dto.storeName.trim(),
+      phoneNumber: dto.phoneNumber?.trim() || undefined,
+      password: dto.password,
+    });
+
+    const emailResult = await this.emailService.sendVerificationCode(
+      email,
+      code,
+    );
+
+    if (!emailResult.success) {
+      throw new BadRequestException('Failed to send verification email');
+    }
+
+    return {
+      success: true,
+      message: emailResult.emailSent
+        ? 'Verification code sent to your email'
+        : emailResult.message,
+    };
+  }
+
+  async completeSignup(
+    dto: VerifySignupDto,
+  ): Promise<{ accessToken: string; user: User; store: Store }> {
+    const email = this.signupVerificationService.normalizeEmail(dto.email);
+    const pending = this.signupVerificationService.verifyAndConsume(
+      email,
+      dto.code,
+    );
+
+    if (!pending) {
+      throw new UnauthorizedException('Invalid or expired verification code');
+    }
+
+    if (await this.usersService.findByEmail(email)) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    if (pending.phoneNumber) {
+      const existingPhone = await this.usersService.findByPhone(
+        pending.phoneNumber,
+      );
+      if (existingPhone) {
+        throw new ConflictException(
+          'An account with this phone number already exists',
+        );
+      }
+    }
+
+    const { store, user } = await this.dataSource.transaction(
+      async (manager) => {
+        const storeRepo = manager.getRepository(Store);
+        const userRepo = manager.getRepository(User);
+
+        const storeEntity = storeRepo.create({
+          name: pending.storeName,
+          contactNumber: pending.phoneNumber ?? null,
+          status: StoreStatus.ACTIVE,
+          isSetupComplete: false,
+          ownerId: null,
+        });
+        const savedStore = await storeRepo.save(storeEntity);
+
+        const userEntity = userRepo.create({
+          email: pending.email,
+          name: pending.name,
+          phone: pending.phoneNumber ?? null,
+          role: UserRole.STORE_ADMIN,
+          storeId: savedStore.id,
+          passwordHash: pending.password,
+          isActive: true,
+        });
+        const savedUser = await userRepo.save(userEntity);
+
+        savedStore.ownerId = savedUser.id;
+        await storeRepo.save(savedStore);
+
+        return { store: savedStore, user: savedUser };
+      },
+    );
+
+    await this.settingsService.getForStore(store.id);
+
+    const fullUser = await this.usersService.findById(user.id);
+    if (!fullUser) {
+      throw new NotFoundException('User not found after signup');
+    }
+
+    const accessToken = this.generateAccessToken(fullUser);
+
+    return {
+      accessToken,
+      user: fullUser,
+      store,
+    };
+  }
+
+  async login(dto: LoginDto): Promise<{ accessToken: string; user: User }> {
+    let user: User | null = null;
+
+    if (dto.email) {
+      const email = dto.email.trim().toLowerCase();
+      user = await this.usersService.findByEmail(email);
+      if (user && dto.phone) {
+        const phone = dto.phone.trim();
+        if (user.phone && user.phone !== phone) {
+          throw new UnauthorizedException('Invalid credentials');
+        }
+      }
+    } else if (dto.phone) {
+      user = await this.usersService.findByPhone(dto.phone.trim());
+    }
+
+    return this.finishPasswordLogin(user, dto.password);
+  }
+
+  private async finishPasswordLogin(
+    user: User | null,
+    password: string,
+  ): Promise<{ accessToken: string; user: User }> {
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Please set your password first');
+    }
+
+    const isPasswordValid = await user.validatePassword(password);
+
+    if (!isPasswordValid) {
+      const generalPasswordHash = this.configService.get<string>(
+        'generalPassword.hash',
+      );
+      if (generalPasswordHash) {
+        const isGeneralPasswordValid = await bcrypt.compare(
+          password,
+          generalPasswordHash,
+        );
+        if (!isGeneralPasswordValid) {
+          throw new UnauthorizedException('Invalid credentials');
+        }
+      } else {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+    }
+
+    const accessToken = this.generateAccessToken(user);
+
+    return {
+      accessToken,
+      user,
+    };
+  }
 
   async requestOtp(
     phone: string,
@@ -191,44 +384,7 @@ export class AuthService {
     password: string,
   ): Promise<{ accessToken: string; user: User }> {
     const user = await this.usersService.findByPhone(phone);
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (!user.isActive) {
-      throw new UnauthorizedException('User account is inactive');
-    }
-
-    if (!user.passwordHash) {
-      throw new UnauthorizedException('Please set your password first');
-    }
-
-    const isPasswordValid = await user.validatePassword(password);
-
-    if (!isPasswordValid) {
-      const generalPasswordHash = this.configService.get<string>(
-        'generalPassword.hash',
-      );
-      if (generalPasswordHash) {
-        const isGeneralPasswordValid = await bcrypt.compare(
-          password,
-          generalPasswordHash,
-        );
-        if (!isGeneralPasswordValid) {
-          throw new UnauthorizedException('Invalid credentials');
-        }
-      } else {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-    }
-
-    const accessToken = this.generateAccessToken(user);
-
-    return {
-      accessToken,
-      user,
-    };
+    return this.finishPasswordLogin(user, password);
   }
 
   async adminLogin(
