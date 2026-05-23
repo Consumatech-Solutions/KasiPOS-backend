@@ -4,6 +4,11 @@ Backend API for **KasiPOS**, a modern offline‑first Point of Sale (POS) applic
 
 This service powers the business logic and cloud persistence for the frontend PWA (`kasiPOS-frontend`), which uses **Next.js**, **Dexie.js**, and **IndexedDB** for offline storage.
 
+**Full open-source backend documentation (Apache 2.0, architecture, Swagger / E2E-style API testing):**
+
+- [English — `docs/BACKEND.en.md`](docs/BACKEND.en.md)
+- [Français — `docs/BACKEND.fr.md`](docs/BACKEND.fr.md)
+
 ## How it fits with the frontend
 
 - **Offline‑first:**  
@@ -44,22 +49,13 @@ cp .env.example .env
 ```
 
 3. **Configure environment variables**  
-   Edit `.env` to match your local setup:
+   Edit `.env` to match your local setup (see [`.env.example`](.env.example) for the complete list):
 
-- **Database**
-  - `DB_HOST=localhost`
-  - `DB_PORT=5432`
-  - `DB_USERNAME=postgres`
-  - `DB_PASSWORD=postgres`
-  - `DB_NAME=kasipos`
-- **App**
-  - `PORT=3000` (you can change this if it clashes with the frontend)
-  - `NODE_ENV=development`
-- **Auth**
-  - `JWT_SECRET=your-secret-key`
-  - `JWT_EXPIRES_IN=7d`
-- **Optional integrations**
-  - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET_NAME`
+- **Database:** `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE` (or `DATABASE_URL` in production when configured)
+- **App:** `PORT`, `NODE_ENV`, `FRONTEND_URL` (CORS)
+- **Auth:** `JWT_SECRET`, `JWT_EXPIRES_IN`
+- **OTP / SMS (WinSMS):** `OTP_CODE_LENGTH`, `OTP_EXPIRY_MINUTES`, `WINSMS_USERNAME`, `WINSMS_PASSWORD`
+- **Optional file storage (S3-compatible / DigitalOcean Spaces):** `DO_SPACES_ENDPOINT`, `DO_SPACES_REGION`, `DO_SPACES_ACCESS_KEY_ID`, `DO_SPACES_SECRET_ACCESS_KEY`, `DO_SPACES_BUCKET`, `MAX_FILE_SIZE`
 
 ---
 
@@ -100,12 +96,14 @@ cd kasiPOS-backend
 npm run start:dev
 ```
 
-By default the API is available at:
+After startup, the service listens on `PORT` from `.env` (the example file uses `3001`).
 
-- **Base URL:** `http://localhost:3000/api`
-- **Healthcheck:** `GET /api/health`
+- **REST API base:** `http://localhost:<PORT>` — routes are at the root (e.g. `/auth`, `/users`), not under `/api`.
+- **API info:** `GET http://localhost:<PORT>/` — returns name, version, and documentation URL.
+- **Swagger UI (interactive docs & testing):** `http://localhost:<PORT>/api`
+- **OpenAPI JSON:** `http://localhost:<PORT>/api-json`
 
-You can change the port via the `PORT` env variable, for example `PORT=4000` if your Next.js frontend also runs on port 3000.
+See [`docs/BACKEND.en.md`](docs/BACKEND.en.md) for Swagger-based E2E-style testing and Apache 2.0 details.
 
 ### Start the frontend (for a full stack dev setup)
 
@@ -117,10 +115,10 @@ npm install   # first time only
 npm run dev
 ```
 
-Then configure the frontend (e.g. via env) to point to the backend base URL, such as:
+Then configure the frontend (e.g. via env) to point to the **backend REST root** (no `/api` suffix unless your deployment adds a proxy prefix), for example:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 ```
 
 This will let the PWA sync POS data, inventory, customers, vouchers, and reports against this backend.
@@ -154,7 +152,7 @@ This will let the PWA sync POS data, inventory, customers, vouchers, and reports
 src/
 ├── main.ts                 # Application entry point
 ├── app.module.ts           # Root module
-├── app.controller.ts       # Root controller (welcome + health)
+├── app.controller.ts       # Root controller (GET / metadata)
 ├── app.service.ts          # Root service
 ├── database/               # Database configuration
 │   ├── data-source.ts      # TypeORM data source (CLI + migrations)
@@ -180,11 +178,11 @@ As you implement features that align with the frontend app, you can create modul
 - **TypeORM** – ORM for PostgreSQL, migrations, and entity management
 - **PostgreSQL** – Primary relational database
 - **JWT + Passport** – Authentication and authorization
-- **AWS S3 (optional)** – File and media storage
+- **S3-compatible storage (optional)** – DigitalOcean Spaces / compatible endpoints for file uploads
 
 ---
 
 ## License
 
-UNLICENSED
+Licensed under the **Apache License, Version 2.0**. See [`LICENSE`](LICENSE) for the full text and [`NOTICE`](NOTICE) for attribution. SPDX identifier: `Apache-2.0`.
 
