@@ -8,12 +8,15 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { StoreAdminResetToken } from './entities/store-admin-reset-token.entity';
+import { Store } from '../stores/entities/store.entity';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
     UsersModule,
+    SettingsModule,
     PassportModule,
-    TypeOrmModule.forFeature([StoreAdminResetToken]),
+    TypeOrmModule.forFeature([StoreAdminResetToken, Store]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {

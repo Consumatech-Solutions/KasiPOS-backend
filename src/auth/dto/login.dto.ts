@@ -1,14 +1,29 @@
-import { IsString, IsNotEmpty, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  MinLength,
+  IsOptional,
+  IsEmail,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AtLeastOneOf } from '../../common/validators/at-least-one-of.validator';
 
 export class LoginDto {
-  @ApiProperty({
-    description: 'User phone number',
+  @ApiPropertyOptional({
+    description: 'User email (provide email or phone)',
+    example: 'owner@example.com',
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({
+    description: 'User phone number (provide email or phone)',
     example: '0812345678',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  phone: string;
+  phone?: string;
 
   @ApiProperty({
     description: 'User password',
@@ -18,4 +33,7 @@ export class LoginDto {
   @IsNotEmpty()
   @MinLength(1)
   password: string;
+
+  @AtLeastOneOf(['email', 'phone'])
+  _atLeastOneIdentifier?: string;
 }

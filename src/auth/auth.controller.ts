@@ -21,6 +21,8 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { SetPasswordStoreAdminDto } from './dto/set-password-store-admin.dto';
 import { LoginDto } from './dto/login.dto';
+import { SignupDto } from './dto/signup.dto';
+import { VerifySignupDto } from './dto/verify-signup.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -55,6 +57,65 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Failed to send OTP' })
   async requestOtp(@Body() requestOtpDto: RequestOtpDto) {
     return this.authService.requestOtp(requestOtpDto.phone);
+  }
+
+  @Post('signup')
+  @ApiOperation({
+    summary: 'Start merchant signup',
+    description:
+      'Register with email, owner name, store name, and password. Sends a 6-digit verification code to the email via Resend.',
+  })
+  @ApiBody({ type: SignupDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Verification code sent',
+    schema: {
+      example: {
+        success: true,
+        message: 'Verification code sent to your email',
+      },
+    },
+  })
+  @ApiResponse({ status: 409, description: 'Email or phone already registered' })
+  @ApiResponse({ status: 400, description: 'Failed to send verification email' })
+  async signup(@Body() signupDto: SignupDto) {
+    return this.authService.initiateSignup(signupDto);
+  }
+
+  @Post('signup/verify')
+  @ApiOperation({
+    summary: 'Complete merchant signup',
+    description:
+      'Verify the 6-digit email code. Creates the store and store_admin user, then returns an access token.',
+  })
+  @ApiBody({ type: VerifySignupDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Signup completed',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          id: 'uuid-here',
+          email: 'owner@example.com',
+          name: 'Jane Doe',
+          role: 'store_admin',
+          storeId: 'uuid-here',
+          isActive: true,
+        },
+        store: {
+          id: 'uuid-here',
+          name: "Jane's Shop",
+          ownerId: 'uuid-here',
+          status: 'active',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Invalid or expired verification code' })
+  @ApiResponse({ status: 409, description: 'Email or phone already registered' })
+  async verifySignup(@Body() verifySignupDto: VerifySignupDto) {
+    return this.authService.completeSignup(verifySignupDto);
   }
 
   @Post('verify-otp')
@@ -179,9 +240,9 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({
-    summary: 'Login with phone and password',
+    summary: 'Login with email or phone and password',
     description:
-      'Authenticate user with phone number and password. Returns JWT access token.',
+      'Authenticate with email and/or phone plus password. No verification code required. Returns JWT access token immediately.',
   })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -192,9 +253,10 @@ export class AuthController {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         user: {
           id: 'uuid-here',
+          email: 'owner@example.com',
           phone: '0812345678',
           name: 'John Doe',
-          role: 'staff',
+          role: 'store_admin',
           storeId: 'uuid-here',
           isActive: true,
           createdAt: '2026-01-20T08:00:00.000Z',
@@ -208,7 +270,7 @@ export class AuthController {
     description: 'Invalid credentials or user account is inactive',
   })
   async login(@Body() loginDto: LoginDto) {
-    return this.authService.loginByPhone(loginDto.phone, loginDto.password);
+    return this.authService.login(loginDto);
   }
 
   @Post('admin/login')

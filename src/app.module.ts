@@ -10,6 +10,7 @@ import otpConfig from './config/otp.config';
 import smsConfig from './config/sms.config';
 import s3Config from './config/s3.config';
 import generalPasswordConfig from './config/general-password.config';
+import resendConfig from './config/resend.config';
 import { AuthModule } from './auth/auth.module';
 import { StoreAdminResetToken } from './auth/entities/store-admin-reset-token.entity';
 import { UsersModule } from './users/users.module';
@@ -69,6 +70,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
         smsConfig,
         s3Config,
         generalPasswordConfig,
+        resendConfig,
       ],
     }),
     TypeOrmModule.forRootAsync({
