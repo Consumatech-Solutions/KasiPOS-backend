@@ -13,6 +13,7 @@ import {
 } from './entities/transaction.entity';
 import { EmailService } from '../services/email.service';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Customer } from '../customers/entities/customer.entity';
 
 const MILESTONE_OFFSETS_MS: Record<
@@ -40,6 +41,7 @@ export class CreditReminderService {
     private readonly customersRepository: Repository<Customer>,
     private readonly emailService: EmailService,
     private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -140,9 +142,11 @@ export class CreditReminderService {
       .getMany();
 
     for (const tx of overdueTxs) {
-      await this.sendOverdueReminder(tx);
-      tx.lastOverdueReminderAt = now;
-      await this.transactionsRepository.save(tx);
+      const delivered = await this.sendOverdueReminder(tx, now);
+      if (delivered) {
+        tx.lastOverdueReminderAt = now;
+        await this.transactionsRepository.save(tx);
+      }
     }
   }
 
@@ -156,11 +160,17 @@ export class CreditReminderService {
         })
       : null;
 
-    const subject = this.milestoneSubject(reminder.reminderKind);
-    const html = this.buildEmailHtml(tx, customer?.name ?? null, subject);
+    const title = this.milestoneSubject(reminder.reminderKind);
+    const customerName = customer?.name ?? null;
+    const delivered = await this.deliverCreditReminder(
+      tx,
+      customerName,
+      title,
+      reminder.reminderKind,
+      `credit-reminder:${tx.id}:${reminder.reminderKind}`,
+    );
 
-    const sent = await this.notifyStoreAdmins(tx.storeId, subject, html);
-    if (sent) {
+    if (delivered) {
       await this.reminderRepository.update(reminder.id, {
         status: CreditReminderStatus.SENT,
         sentAt: new Date(),
@@ -168,19 +178,68 @@ export class CreditReminderService {
     }
   }
 
-  private async sendOverdueReminder(tx: Transaction): Promise<void> {
+  private async sendOverdueReminder(
+    tx: Transaction,
+    now: Date,
+  ): Promise<boolean> {
     const customer = tx.customerId
       ? await this.customersRepository.findOne({
           where: { id: tx.customerId },
         })
       : null;
 
-    const subject = 'Credit payment overdue';
-    const html = this.buildEmailHtml(tx, customer?.name ?? null, subject, true);
-    await this.notifyStoreAdmins(tx.storeId, subject, html);
+    const title = 'Credit payment overdue';
+    const overdueWindow = Math.floor(now.getTime() / OVERDUE_INTERVAL_MS);
+    return this.deliverCreditReminder(
+      tx,
+      customer?.name ?? null,
+      title,
+      'OVERDUE',
+      `credit-overdue:${tx.id}:${overdueWindow}`,
+      true,
+    );
   }
 
-  private async notifyStoreAdmins(
+  private async deliverCreditReminder(
+    tx: Transaction,
+    customerName: string | null,
+    title: string,
+    reminderKind: string,
+    dedupeKeySuffix: string,
+    overdue = false,
+  ): Promise<boolean> {
+    const body = this.buildNotificationBody(tx, customerName, title, overdue);
+    const html = this.buildEmailHtml(tx, customerName, title, overdue);
+
+    const inAppCreated =
+      await this.notificationsService.createCreditPaymentReminders({
+        storeId: tx.storeId,
+        transactionId: tx.id,
+        title,
+        body,
+        reminderKind,
+        dedupeKeySuffix,
+        customerId: tx.customerId,
+        customerName,
+        total: tx.total,
+        creditDueAt: tx.creditDueAt,
+        overdue,
+      });
+
+    const emailSent = await this.sendEmailsToStoreAdmins(
+      tx.storeId,
+      title,
+      html,
+    );
+
+    if (!inAppCreated && !emailSent) {
+      this.logger.warn(`No store admin recipients for store ${tx.storeId}`);
+    }
+
+    return inAppCreated || emailSent;
+  }
+
+  private async sendEmailsToStoreAdmins(
     storeId: string,
     subject: string,
     html: string,
@@ -189,7 +248,6 @@ export class CreditReminderService {
       storeId,
     );
     if (emails.length === 0) {
-      this.logger.warn(`No store admin emails for store ${storeId}`);
       return false;
     }
 
@@ -220,6 +278,20 @@ export class CreditReminderService {
       default:
         return 'Credit payment reminder';
     }
+  }
+
+  private buildNotificationBody(
+    tx: Transaction,
+    customerName: string | null,
+    headline: string,
+    overdue = false,
+  ): string {
+    const dueStr = tx.creditDueAt
+      ? new Date(tx.creditDueAt).toISOString()
+      : 'N/A';
+    const customer = customerName ?? tx.customerId ?? 'Unknown';
+    const prefix = overdue ? 'Overdue: ' : '';
+    return `${prefix}${headline}. Customer ${customer}, amount ${tx.total}, due ${dueStr}.`;
   }
 
   private buildEmailHtml(

@@ -135,35 +135,51 @@ export class UsersService {
     await this.usersRepository.softDelete({ id });
   }
 
-  /** Active store_admin emails for a store, plus store owner if not already included. */
-  async findStoreAdminEmailsByStoreId(storeId: string): Promise<string[]> {
+  /** Active store admins for a store, plus store owner if not already included. */
+  async findStoreAdminRecipientsByStoreId(
+    storeId: string,
+  ): Promise<{ userId: string; email: string }[]> {
     const admins = await this.usersRepository.find({
       where: {
         storeId,
         role: UserRole.STORE_ADMIN,
         isActive: true,
       },
-      select: ['email'],
+      select: ['id', 'email'],
     });
 
-    const emails = new Set(
-      admins.map((u) => u.email?.trim().toLowerCase()).filter(Boolean) as string[],
-    );
+    const byUserId = new Map<string, string>();
+    for (const admin of admins) {
+      const email = admin.email?.trim().toLowerCase();
+      if (email) {
+        byUserId.set(admin.id, email);
+      }
+    }
 
     const store = await this.storesRepository.findOne({
       where: { id: storeId },
       select: ['ownerId'],
     });
-    if (store?.ownerId) {
+    if (store?.ownerId && !byUserId.has(store.ownerId)) {
       const owner = await this.usersRepository.findOne({
         where: { id: store.ownerId, isActive: true },
-        select: ['email'],
+        select: ['id', 'email'],
       });
-      if (owner?.email) {
-        emails.add(owner.email.trim().toLowerCase());
+      const email = owner?.email?.trim().toLowerCase();
+      if (owner && email) {
+        byUserId.set(owner.id, email);
       }
     }
 
-    return [...emails];
+    return [...byUserId.entries()].map(([userId, email]) => ({
+      userId,
+      email,
+    }));
+  }
+
+  /** Active store_admin emails for a store, plus store owner if not already included. */
+  async findStoreAdminEmailsByStoreId(storeId: string): Promise<string[]> {
+    const recipients = await this.findStoreAdminRecipientsByStoreId(storeId);
+    return recipients.map((r) => r.email);
   }
 }

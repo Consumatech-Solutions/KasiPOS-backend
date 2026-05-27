@@ -59,6 +59,8 @@ import { Campaign } from './campaigns/entities/campaign.entity';
 import { StatsModule } from './stats/stats.module';
 import { SettingsModule } from './settings/settings.module';
 import { StoreSettings } from './settings/entities/store-settings.entity';
+import { NotificationsModule } from './notifications/notifications.module';
+import { Notification } from './notifications/entities/notification.entity';
 
 @Module({
   imports: [
@@ -114,6 +116,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
             StoreAdminResetToken,
             StoreSettings,
             TempIdMapping,
+            Notification,
           ],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
@@ -144,6 +147,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
     CampaignsModule,
     StatsModule,
     SettingsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
