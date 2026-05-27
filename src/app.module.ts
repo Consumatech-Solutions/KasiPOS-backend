@@ -28,6 +28,7 @@ import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
 import { TransactionsModule } from './transactions/transactions.module';
 import { Transaction } from './transactions/entities/transaction.entity';
+import { CreditPaymentReminder } from './transactions/entities/credit-payment-reminder.entity';
 import { PendingTransaction } from './transactions/entities/pending-transaction.entity';
 import { StockAdjustmentsModule } from './stock-adjustments/stock-adjustments.module';
 import { StockAdjustment } from './stock-adjustments/entities/stock-adjustment.entity';
@@ -98,6 +99,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
             RoleTransfer,
             Customer,
             Transaction,
+            CreditPaymentReminder,
             PendingTransaction,
             StockAdjustment,
             PurchaseOrder,

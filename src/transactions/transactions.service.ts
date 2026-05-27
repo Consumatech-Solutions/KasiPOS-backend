@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
-import { Transaction } from './entities/transaction.entity';
+import { Transaction, TransactionStatus } from './entities/transaction.entity';
 import { PendingTransaction } from './entities/pending-transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GetTransactionsDto } from './dto/get-transactions.dto';
@@ -15,6 +15,8 @@ import { PaginationResult } from '../common/dto/pagination.dto';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappings.service';
 import { SettingsService } from '../settings/settings.service';
+import { CreditReminderService } from './credit-reminder.service';
+import { computeCreditDueAt } from './utils/credit-due.util';
 import { CreateTransactionResult } from './types/create-transaction-result.type';
 import {
   StockAdjustment,
@@ -34,6 +36,7 @@ export class TransactionsService {
     private readonly vouchersService: VouchersService,
     private readonly tempIdMappingsService: TempIdMappingsService,
     private readonly settingsService: SettingsService,
+    private readonly creditReminderService: CreditReminderService,
   ) {}
 
   async create(dto: CreateTransactionDto): Promise<CreateTransactionResult> {
@@ -104,6 +107,14 @@ export class TransactionsService {
       throw new BadRequestException(
         'Customer is required when payment method is Credit.',
       );
+    }
+
+    if (dtoResolved.paymentMethod === 'Credit') {
+      if (!dtoResolved.creditDetails?.paymentDate) {
+        throw new BadRequestException(
+          'creditDetails.paymentDate is required when payment method is Credit.',
+        );
+      }
     }
 
     const transaction = await this.commitResolvedTransaction(dtoResolved, {
@@ -185,6 +196,7 @@ export class TransactionsService {
       return tx;
     });
     this.enqueueVoucherUsage(dto, saved);
+    await this.creditReminderService.scheduleReminders(saved);
     return saved;
   }
 
@@ -199,6 +211,7 @@ export class TransactionsService {
       return this.persistTransaction(manager, dto, options);
     });
     this.enqueueVoucherUsage(dto, saved);
+    await this.creditReminderService.scheduleReminders(saved);
     return saved;
   }
 
@@ -286,8 +299,12 @@ export class TransactionsService {
       await manager.getRepository(Product).save(product);
     }
 
-    let creditDetails: { paymentDate?: string; note?: string } | null = null;
+    let creditDetails: Transaction['creditDetails'] = null;
+    let creditDueAt: Date | null = null;
+    let status: TransactionStatus;
+
     if (dtoResolved.paymentMethod === 'Credit') {
+      status = TransactionStatus.PENDING;
       const customerId = dtoResolved.customerId!;
       const customer = await manager.getRepository(Customer).findOne({
         where: { id: customerId },
@@ -318,7 +335,16 @@ export class TransactionsService {
       }
       customer.outstandingCredit = currentOutstanding + totalNum;
       await manager.getRepository(Customer).save(customer);
-      creditDetails = dtoResolved.creditDetails ?? {};
+
+      const paymentDate = dtoResolved.creditDetails!.paymentDate!;
+      creditDetails = {
+        paymentDate,
+        note: dtoResolved.creditDetails?.note,
+      };
+    } else if (dtoResolved.status === 'failed') {
+      status = TransactionStatus.FAILED;
+    } else {
+      status = TransactionStatus.PAID;
     }
 
     const tx = manager.getRepository(Transaction).create({
@@ -327,13 +353,99 @@ export class TransactionsService {
       pendingCustomerTempId,
       items: dtoResolved.items,
       paymentMethod: dtoResolved.paymentMethod,
+      status,
       total: dtoResolved.total,
       voucherCode: dtoResolved.voucherCode ?? null,
       discount: dtoResolved.discount ?? null,
       creditDetails,
+      creditDueAt: null,
     });
 
-    return manager.getRepository(Transaction).save(tx);
+    let saved = await manager.getRepository(Transaction).save(tx);
+
+    if (dtoResolved.paymentMethod === 'Credit' && creditDetails?.paymentDate) {
+      try {
+        creditDueAt = computeCreditDueAt(
+          creditDetails.paymentDate,
+          saved.createdAt,
+        );
+      } catch {
+        throw new BadRequestException('Invalid creditDetails.paymentDate');
+      }
+      saved.creditDueAt = creditDueAt;
+      saved.creditDetails = {
+        ...creditDetails,
+        dueAt: creditDueAt.toISOString(),
+      };
+      saved = await manager.getRepository(Transaction).save(saved);
+    }
+
+    return saved;
+  }
+
+  async clearCredit(
+    transactionId: string,
+    storeId: string,
+  ): Promise<Transaction> {
+    const updated = await this.dataSource.transaction(async (manager) => {
+      const txRepo = manager.getRepository(Transaction);
+      const tx = await txRepo.findOne({
+        where: { id: transactionId, storeId },
+      });
+
+      if (!tx) {
+        throw new NotFoundException(`Transaction not found: ${transactionId}`);
+      }
+
+      if (tx.paymentMethod !== 'Credit') {
+        throw new BadRequestException(
+          'Only credit transactions can be cleared with this endpoint.',
+        );
+      }
+
+      if (tx.status !== TransactionStatus.PENDING) {
+        throw new BadRequestException(
+          'Only pending credit transactions can be cleared.',
+        );
+      }
+
+      if (!tx.customerId) {
+        throw new BadRequestException(
+          'Credit transaction has no customer linked.',
+        );
+      }
+
+      const customer = await manager.getRepository(Customer).findOne({
+        where: { id: tx.customerId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!customer) {
+        throw new NotFoundException(`Customer not found: ${tx.customerId}`);
+      }
+
+      const totalNum = Number(tx.total);
+      const outstanding = Number(customer.outstandingCredit ?? 0);
+
+      if (outstanding < totalNum) {
+        throw new BadRequestException(
+          `Customer outstanding credit (${outstanding}) is less than transaction total (${totalNum}).`,
+        );
+      }
+
+      customer.outstandingCredit = outstanding - totalNum;
+      await manager.getRepository(Customer).save(customer);
+
+      tx.status = TransactionStatus.PAID;
+      tx.creditSettledAt = new Date();
+      return txRepo.save(tx);
+    });
+
+    await this.creditReminderService.cancelRemindersForTransaction(
+      transactionId,
+    );
+
+    return updated;
   }
 
   async findAll(

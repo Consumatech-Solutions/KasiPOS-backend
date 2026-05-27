@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { User, UserRole } from './entities/user.entity';
+import { Store } from '../stores/entities/store.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationResult } from '../common/dto/pagination.dto';
@@ -11,6 +12,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Store)
+    private storesRepository: Repository<Store>,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -130,5 +133,37 @@ export class UsersService {
 
     await this.usersRepository.update({ id }, { isActive: false });
     await this.usersRepository.softDelete({ id });
+  }
+
+  /** Active store_admin emails for a store, plus store owner if not already included. */
+  async findStoreAdminEmailsByStoreId(storeId: string): Promise<string[]> {
+    const admins = await this.usersRepository.find({
+      where: {
+        storeId,
+        role: UserRole.STORE_ADMIN,
+        isActive: true,
+      },
+      select: ['email'],
+    });
+
+    const emails = new Set(
+      admins.map((u) => u.email?.trim().toLowerCase()).filter(Boolean) as string[],
+    );
+
+    const store = await this.storesRepository.findOne({
+      where: { id: storeId },
+      select: ['ownerId'],
+    });
+    if (store?.ownerId) {
+      const owner = await this.usersRepository.findOne({
+        where: { id: store.ownerId, isActive: true },
+        select: ['email'],
+      });
+      if (owner?.email) {
+        emails.add(owner.email.trim().toLowerCase());
+      }
+    }
+
+    return [...emails];
   }
 }
