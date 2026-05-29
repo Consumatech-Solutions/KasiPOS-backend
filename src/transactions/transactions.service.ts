@@ -385,12 +385,14 @@ export class TransactionsService {
 
   async clearCredit(
     transactionId: string,
-    storeId: string,
+    storeId?: string,
   ): Promise<Transaction> {
     const updated = await this.dataSource.transaction(async (manager) => {
       const txRepo = manager.getRepository(Transaction);
       const tx = await txRepo.findOne({
-        where: { id: transactionId, storeId },
+        where: storeId
+          ? { id: transactionId, storeId }
+          : { id: transactionId },
       });
 
       if (!tx) {

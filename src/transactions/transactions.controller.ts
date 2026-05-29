@@ -58,21 +58,25 @@ export class TransactionsController {
 
   @Post('clear-credit')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.STORE_ADMIN)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Mark a pending credit transaction as paid',
     description:
-      'Sets transaction status to paid, reduces customer outstanding credit, and cancels pending payment reminders.',
+      'Sets transaction status to paid, reduces customer outstanding credit, and cancels pending payment reminders. Store admins are scoped to their store; platform admins may clear any store transaction.',
   })
   @ApiResponse({ status: 201, description: 'Credit cleared successfully' })
   @ApiResponse({ status: 400, description: 'Invalid transaction state' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async clearCredit(@Body() dto: ClearCreditDto, @Request() req) {
-    const storeId = req.user?.storeId;
-    if (!storeId) {
+    const isAdmin = req.user?.role === UserRole.ADMIN;
+    const storeId = req.user?.storeId as string | undefined;
+    if (!isAdmin && !storeId) {
       throw new BadRequestException('Store admin must be linked to a store');
     }
-    return this.transactionsService.clearCredit(dto.id, storeId);
+    return this.transactionsService.clearCredit(
+      dto.id,
+      isAdmin ? undefined : storeId,
+    );
   }
 
   @Get()
