@@ -14,6 +14,7 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { OtpService } from '../services/otp.service';
 import { EmailService } from '../services/email.service';
+import { SmsService } from '../services/sms.service';
 import { SignupVerificationService } from '../services/signup-verification.service';
 import { User, UserRole } from '../users/entities/user.entity';
 import { StoreAdminResetToken } from './entities/store-admin-reset-token.entity';
@@ -32,6 +33,7 @@ export class AuthService {
     private usersService: UsersService,
     private otpService: OtpService,
     private emailService: EmailService,
+    private smsService: SmsService,
     private signupVerificationService: SignupVerificationService,
     private settingsService: SettingsService,
     private jwtService: JwtService,
@@ -43,29 +45,51 @@ export class AuthService {
 
   async initiateSignup(
     dto: SignupDto,
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{
+    success: boolean;
+    message: string;
+    verificationChannel: 'sms' | 'email';
+  }> {
     const email = this.signupVerificationService.normalizeEmail(dto.email);
+    const countryCode = dto.countryCode.trim().toUpperCase();
+    const phoneNumber = dto.phoneNumber.replace(/\D/g, '');
 
     if (await this.usersService.findByEmail(email)) {
       throw new ConflictException('An account with this email already exists');
     }
 
-    if (dto.phoneNumber) {
-      const existingPhone = await this.usersService.findByPhone(dto.phoneNumber);
-      if (existingPhone) {
-        throw new ConflictException(
-          'An account with this phone number already exists',
-        );
-      }
+    const existingPhone = await this.usersService.findByPhone(phoneNumber);
+    if (existingPhone) {
+      throw new ConflictException(
+        'An account with this phone number already exists',
+      );
     }
 
     const { code } = this.signupVerificationService.createPending({
       email,
       name: dto.name.trim(),
       storeName: dto.storeName.trim(),
-      phoneNumber: dto.phoneNumber?.trim() || undefined,
+      phoneNumber,
+      countryCode,
       password: dto.password,
     });
+
+    const isSouthAfrica = countryCode === 'ZA';
+
+    if (isSouthAfrica) {
+      const smsMessage = `Your KasiPOS verification code is ${code}.`;
+      const smsResult = await this.smsService.send(phoneNumber, smsMessage);
+
+      if (!smsResult.success) {
+        throw new BadRequestException('Failed to send verification SMS');
+      }
+
+      return {
+        success: true,
+        message: 'Verification code sent to your mobile number',
+        verificationChannel: 'sms',
+      };
+    }
 
     const emailResult = await this.emailService.sendVerificationCode(
       email,
@@ -81,6 +105,7 @@ export class AuthService {
       message: emailResult.emailSent
         ? 'Verification code sent to your email'
         : emailResult.message,
+      verificationChannel: 'email',
     };
   }
 

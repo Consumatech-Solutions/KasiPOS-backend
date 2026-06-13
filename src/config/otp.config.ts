@@ -1,8 +1,8 @@
 import { registerAs } from '@nestjs/config';
 
 function parseCodeLength(raw: string | undefined): number {
-  const n = parseInt(raw || '4', 10);
-  if (!Number.isFinite(n) || n < 4 || n > 8) return 4;
+  const n = parseInt(raw || '6', 10);
+  if (!Number.isFinite(n) || n < 4 || n > 8) return 6;
   return n;
 }
 

@@ -2,10 +2,11 @@ import {
   IsString,
   IsNotEmpty,
   IsEmail,
-  IsOptional,
   MinLength,
+  Matches,
+  Length,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class SignupDto {
   @ApiProperty({ example: 'owner@example.com', description: 'Account email' })
@@ -32,11 +33,23 @@ export class SignupDto {
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
 
-  @ApiPropertyOptional({
-    example: '0812345678',
-    description: 'Optional contact phone number',
+  @ApiProperty({
+    example: 'ZA',
+    description: 'ISO 3166-1 alpha-2 country code',
   })
   @IsString()
-  @IsOptional()
-  phoneNumber?: string;
+  @IsNotEmpty()
+  @Length(2, 2)
+  @Matches(/^[A-Za-z]{2}$/, {
+    message: 'countryCode must be a 2-letter ISO code (e.g. ZA)',
+  })
+  countryCode: string;
+
+  @ApiProperty({
+    example: '27812345678',
+    description: 'E.164 digits-only phone number (country code + local number)',
+  })
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber: string;
 }
