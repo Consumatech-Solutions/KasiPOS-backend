@@ -22,7 +22,7 @@ export class OtpService {
   async sendOtp(
     phoneNumber: string,
   ): Promise<{ success: boolean; messageId?: string }> {
-    const codeLength = this.configService.get<number>('otp.codeLength') ?? 4;
+    const codeLength = this.configService.get<number>('otp.codeLength') ?? 6;
     const expiryMinutes =
       this.configService.get<number>('otp.expiryMinutes') ?? 10;
 

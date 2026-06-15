@@ -63,7 +63,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Start merchant signup',
     description:
-      'Register with email, owner name, store name, and password. Sends a 6-digit verification code to the email via Resend.',
+      'Register with email, owner name, store name, country, and phone. Sends a 6-digit verification code via SMS (South Africa) or email (other countries).',
   })
   @ApiBody({ type: SignupDto })
   @ApiResponse({
@@ -72,12 +72,16 @@ export class AuthController {
     schema: {
       example: {
         success: true,
-        message: 'Verification code sent to your email',
+        message: 'Verification code sent to your mobile number',
+        verificationChannel: 'sms',
       },
     },
   })
   @ApiResponse({ status: 409, description: 'Email or phone already registered' })
-  @ApiResponse({ status: 400, description: 'Failed to send verification email' })
+  @ApiResponse({
+    status: 400,
+    description: 'Failed to send verification SMS or email',
+  })
   async signup(@Body() signupDto: SignupDto) {
     return this.authService.initiateSignup(signupDto);
   }

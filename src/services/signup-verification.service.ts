@@ -7,6 +7,7 @@ export type PendingSignup = {
   name: string;
   storeName: string;
   phoneNumber?: string;
+  countryCode?: string;
   password: string;
   code: string;
   expiresAt: number;
