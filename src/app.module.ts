@@ -28,6 +28,7 @@ import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
 import { TransactionsModule } from './transactions/transactions.module';
 import { Transaction } from './transactions/entities/transaction.entity';
+import { CreditPaymentReminder } from './transactions/entities/credit-payment-reminder.entity';
 import { PendingTransaction } from './transactions/entities/pending-transaction.entity';
 import { StockAdjustmentsModule } from './stock-adjustments/stock-adjustments.module';
 import { StockAdjustment } from './stock-adjustments/entities/stock-adjustment.entity';
@@ -58,6 +59,8 @@ import { Campaign } from './campaigns/entities/campaign.entity';
 import { StatsModule } from './stats/stats.module';
 import { SettingsModule } from './settings/settings.module';
 import { StoreSettings } from './settings/entities/store-settings.entity';
+import { NotificationsModule } from './notifications/notifications.module';
+import { Notification } from './notifications/entities/notification.entity';
 
 @Module({
   imports: [
@@ -98,6 +101,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
             RoleTransfer,
             Customer,
             Transaction,
+            CreditPaymentReminder,
             PendingTransaction,
             StockAdjustment,
             PurchaseOrder,
@@ -112,6 +116,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
             StoreAdminResetToken,
             StoreSettings,
             TempIdMapping,
+            Notification,
           ],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           synchronize: false, // Always use migrations instead of synchronize
@@ -142,6 +147,7 @@ import { StoreSettings } from './settings/entities/store-settings.entity';
     CampaignsModule,
     StatsModule,
     SettingsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

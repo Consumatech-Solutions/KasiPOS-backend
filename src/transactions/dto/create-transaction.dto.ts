@@ -63,8 +63,8 @@ class CreateTransactionItemDto {
 
 export class CreditDetailsDto {
   @ApiPropertyOptional({
-    description: 'Expected payment date (ISO 8601)',
-    example: '2026-04-01',
+    description:
+      'Required when paymentMethod is "Credit": expected payment date (ISO 8601 date). Due time uses transaction creation time.',
   })
   @IsOptional()
   @IsDateString()
@@ -98,6 +98,15 @@ export class CreateTransactionDto {
 
   @IsIn(['Cash', 'Card', 'Mobile Money', 'Credit'])
   paymentMethod: 'Cash' | 'Card' | 'Mobile Money' | 'Credit';
+
+  @ApiPropertyOptional({
+    description:
+      'For non-credit sales only: set to "failed" when payment did not succeed. Ignored for Credit.',
+    enum: ['failed'],
+  })
+  @IsOptional()
+  @IsIn(['failed'])
+  status?: 'failed';
 
   @IsOptional()
   @IsString()

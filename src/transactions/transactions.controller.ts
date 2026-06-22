@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,8 +19,12 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 import { TempIdResolveInterceptor } from '../common/interceptors/temp-id-resolve.interceptor';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { ClearCreditDto } from './dto/clear-credit.dto';
 import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionResult } from './types/create-transaction-result.type';
@@ -36,7 +41,9 @@ export class TransactionsController {
   @ApiOperation({
     summary: 'Create a transaction (sale)',
     description:
-      'If temp customer/product IDs are not yet synced, responds with status "pending" and pendingTransactionId (stored until sync), or status "committed" with the saved transaction.',
+      'If temp customer/product IDs are not yet synced, responds with status "pending" and pendingTransactionId (stored until sync), or status "committed" with the saved transaction. ' +
+      'Credit sales require creditDetails.paymentDate, return transaction status pending with creditDueAt, and schedule payment reminder emails. ' +
+      'Non-credit sales default to paid; optional status "failed" when payment did not succeed.',
   })
   @ApiResponse({
     status: 201,
@@ -47,6 +54,29 @@ export class TransactionsController {
     @Body() dto: CreateTransactionDto,
   ): Promise<CreateTransactionResult> {
     return this.transactionsService.create(dto);
+  }
+
+  @Post('clear-credit')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Mark a pending credit transaction as paid',
+    description:
+      'Sets transaction status to paid, reduces customer outstanding credit, and cancels pending payment reminders. Store admins are scoped to their store; platform admins may clear any store transaction.',
+  })
+  @ApiResponse({ status: 201, description: 'Credit cleared successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid transaction state' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  async clearCredit(@Body() dto: ClearCreditDto, @Request() req) {
+    const isAdmin = req.user?.role === UserRole.ADMIN;
+    const storeId = req.user?.storeId as string | undefined;
+    if (!isAdmin && !storeId) {
+      throw new BadRequestException('Store admin must be linked to a store');
+    }
+    return this.transactionsService.clearCredit(
+      dto.id,
+      isAdmin ? undefined : storeId,
+    );
   }
 
   @Get()

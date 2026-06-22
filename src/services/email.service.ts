@@ -72,6 +72,51 @@ export class EmailService {
     };
   }
 
+  async sendCreditPaymentReminder(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<SendVerificationCodeResult> {
+    if (!this.isResendConfigured()) {
+      this.logger.warn(
+        'Resend is not configured. Credit payment reminder email was not sent to ' +
+          this.maskEmail(to),
+      );
+      return {
+        success: true,
+        emailSent: false,
+        message: 'Email was not sent because Resend is not configured.',
+      };
+    }
+
+    const { data, error } = await this.resend!.emails.send({
+      from: this.from,
+      to: [to],
+      subject,
+      html,
+    });
+
+    if (error) {
+      this.logger.error(
+        `Resend credit reminder error for ${this.maskEmail(to)}: ${JSON.stringify(error)}`,
+      );
+      return {
+        success: false,
+        emailSent: false,
+        message: 'Failed to send email',
+      };
+    }
+
+    this.logger.log(
+      `Credit reminder sent to ${this.maskEmail(to)} (id: ${data?.id ?? 'n/a'})`,
+    );
+    return {
+      success: true,
+      emailSent: true,
+      message: 'Email sent successfully',
+    };
+  }
+
   private maskEmail(email: string): string {
     const [local, domain] = email.split('@');
     if (!domain) return '***';
