@@ -55,4 +55,33 @@ export class UpdateSettingsDto {
   @ValidateNested()
   @Type(() => CreditSettingDto)
   credit?: CreditSettingDto;
+
+  @ApiPropertyOptional({
+    description: 'Store display currency',
+    enum: ['USD', 'CDF', 'ZAR'],
+    example: 'USD',
+  })
+  @IsOptional()
+  @IsIn(['USD', 'CDF', 'ZAR'])
+  currency?: 'USD' | 'CDF' | 'ZAR';
+
+  @ApiPropertyOptional({
+    description: 'Exchange rate: 1 USD = ? CDF',
+    example: 2850.5,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  cdfUsdExRate?: number;
+
+  @ApiPropertyOptional({
+    description: 'Exchange rate: 1 USD = ? ZAR',
+    example: 18.25,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  zarUsdExRate?: number;
 }

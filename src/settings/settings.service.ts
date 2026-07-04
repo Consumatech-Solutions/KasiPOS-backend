@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import {
   StoreSettings,
   StoreCreditSetting,
+  StoreCurrency,
 } from './entities/store-settings.entity';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
@@ -29,6 +30,7 @@ export class SettingsService {
       settings = this.settingsRepository.create({
         storeId,
         vatIncludedInPrice: true,
+        currency: StoreCurrency.USD,
       });
       settings = await this.settingsRepository.save(settings);
     }
@@ -49,11 +51,21 @@ export class SettingsService {
       settings = this.settingsRepository.create({
         storeId,
         vatIncludedInPrice: true,
+        currency: StoreCurrency.USD,
       });
       settings = await this.settingsRepository.save(settings);
     }
     if (dto.vatIncludedInPrice !== undefined) {
       settings.vatIncludedInPrice = dto.vatIncludedInPrice;
+    }
+    if (dto.currency !== undefined) {
+      settings.currency = dto.currency as StoreCurrency;
+    }
+    if (dto.cdfUsdExRate !== undefined) {
+      settings.cdfUsdExRate = dto.cdfUsdExRate;
+    }
+    if (dto.zarUsdExRate !== undefined) {
+      settings.zarUsdExRate = dto.zarUsdExRate;
     }
     if (dto.credit !== undefined) {
       const { customerCredit } = dto.credit;

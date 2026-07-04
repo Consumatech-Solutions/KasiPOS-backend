@@ -42,6 +42,9 @@ export class SettingsController {
       example: {
         storeId: 'uuid-here',
         vatIncludedInPrice: true,
+        currency: 'USD',
+        cdfUsdExRate: null,
+        zarUsdExRate: null,
         updatedAt: '2026-02-20T12:00:00.000Z',
       },
     },
@@ -72,6 +75,9 @@ export class SettingsController {
       example: {
         storeId: 'uuid-here',
         vatIncludedInPrice: false,
+        currency: 'CDF',
+        cdfUsdExRate: 2850.5,
+        zarUsdExRate: 18.25,
         updatedAt: '2026-02-20T12:00:00.000Z',
       },
     },

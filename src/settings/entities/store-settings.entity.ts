@@ -8,6 +8,12 @@ import {
 } from 'typeorm';
 import { Store } from '../../stores/entities/store.entity';
 
+export enum StoreCurrency {
+  USD = 'USD',
+  CDF = 'CDF',
+  ZAR = 'ZAR',
+}
+
 @Entity('store_settings')
 export class StoreSettings {
   @PrimaryColumn({ name: 'store_id', type: 'uuid' })
@@ -29,6 +35,33 @@ export class StoreSettings {
    */
   @Column({ type: 'jsonb', nullable: true })
   credit: StoreCreditSetting | null;
+
+  @Column({
+    type: 'enum',
+    enum: StoreCurrency,
+    default: StoreCurrency.USD,
+  })
+  currency: StoreCurrency;
+
+  /** 1 USD = ? CDF */
+  @Column({
+    name: 'cdf_usd_ex_rate',
+    type: 'decimal',
+    precision: 18,
+    scale: 6,
+    nullable: true,
+  })
+  cdfUsdExRate: number | null;
+
+  /** 1 USD = ? ZAR */
+  @Column({
+    name: 'zar_usd_ex_rate',
+    type: 'decimal',
+    precision: 18,
+    scale: 6,
+    nullable: true,
+  })
+  zarUsdExRate: number | null;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
