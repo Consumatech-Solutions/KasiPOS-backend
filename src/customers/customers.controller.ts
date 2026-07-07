@@ -23,6 +23,9 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { GetCustomersDto } from './dto/get-customers.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Customers')
 @Controller('customers')
@@ -32,6 +35,8 @@ export class CustomersController {
   constructor(private customersService: CustomersService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create a new customer',
     description:
@@ -70,6 +75,8 @@ export class CustomersController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STAFF, UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'List all customers',
     description:
@@ -137,6 +144,8 @@ export class CustomersController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STAFF, UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get customer by ID',
     description:
@@ -182,6 +191,8 @@ export class CustomersController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Update customer',
     description: 'Update customer information. Requires authentication.',
@@ -227,6 +238,8 @@ export class CustomersController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Delete customer',
     description: 'Delete a customer by its ID. Requires authentication.',
