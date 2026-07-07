@@ -24,16 +24,47 @@ export class EmailService {
     return Boolean(this.resend && this.from);
   }
 
+  private isDevelopmentMode(): boolean {
+    return this.configService.get<string>('NODE_ENV') === 'development';
+  }
+
+  private shouldSkipSendingInDevelopment(): boolean {
+    return (
+      this.isDevelopmentMode() &&
+      !this.configService.get<boolean>('resend.enabledInDevelopment')
+    );
+  }
+
+  private logDevelopmentBypass(context: string, extra?: string): void {
+    const suffix = extra ? ` ${extra}` : '';
+    this.logger.warn(
+      `[DEV ONLY] ${context} email sending is disabled.${suffix}`,
+    );
+  }
+
   async sendVerificationCode(
     to: string,
     code: string,
   ): Promise<SendVerificationCodeResult> {
+    if (this.shouldSkipSendingInDevelopment()) {
+      this.logDevelopmentBypass(
+        'Signup verification',
+        `Code for ${this.maskEmail(to)}: ${code}`,
+      );
+      return {
+        success: true,
+        emailSent: false,
+        message:
+          'Verification code generated. Email was not sent because development email sending is disabled.',
+      };
+    }
+
     if (!this.isResendConfigured()) {
       this.logger.warn(
         'Resend is not configured (RESEND_API_KEY and/or RESEND_FROM missing in .env). ' +
           'Signup verification email was not sent.',
       );
-      if (this.configService.get<string>('NODE_ENV') === 'development') {
+      if (this.isDevelopmentMode()) {
         this.logger.warn(
           `[DEV ONLY] Signup verification code for ${this.maskEmail(to)}: ${code}`,
         );
@@ -77,6 +108,19 @@ export class EmailService {
     subject: string,
     html: string,
   ): Promise<SendVerificationCodeResult> {
+    if (this.shouldSkipSendingInDevelopment()) {
+      this.logDevelopmentBypass(
+        'Credit reminder',
+        `Reminder for ${this.maskEmail(to)} with subject "${subject}"`,
+      );
+      return {
+        success: true,
+        emailSent: false,
+        message:
+          'Email was not sent because development email sending is disabled.',
+      };
+    }
+
     if (!this.isResendConfigured()) {
       this.logger.warn(
         'Resend is not configured. Credit payment reminder email was not sent to ' +
@@ -109,6 +153,63 @@ export class EmailService {
 
     this.logger.log(
       `Credit reminder sent to ${this.maskEmail(to)} (id: ${data?.id ?? 'n/a'})`,
+    );
+    return {
+      success: true,
+      emailSent: true,
+      message: 'Email sent successfully',
+    };
+  }
+
+  async sendPasswordResetLink(
+    to: string,
+    resetLink: string,
+  ): Promise<SendVerificationCodeResult> {
+    if (this.shouldSkipSendingInDevelopment()) {
+      this.logDevelopmentBypass(
+        'Password reset',
+        `Reset link for ${this.maskEmail(to)}: ${resetLink}`,
+      );
+      return {
+        success: true,
+        emailSent: false,
+        message:
+          'Password reset link generated. Email was not sent because development email sending is disabled.',
+      };
+    }
+
+    if (!this.isResendConfigured()) {
+      this.logger.warn(
+        'Resend is not configured. Password reset email was not sent to ' +
+          this.maskEmail(to),
+      );
+      return {
+        success: true,
+        emailSent: false,
+        message: 'Email was not sent because Resend is not configured.',
+      };
+    }
+
+    const { data, error } = await this.resend!.emails.send({
+      from: this.from,
+      to: [to],
+      subject: 'Reset your KasiPOS password',
+      html: `<p>You requested a password reset.</p><p><a href="${resetLink}">Reset your password</a></p><p>This link expires in 10 minutes.</p><p>If you did not request this, you can ignore this email.</p>`,
+    });
+
+    if (error) {
+      this.logger.error(
+        `Resend password reset error for ${this.maskEmail(to)}: ${JSON.stringify(error)}`,
+      );
+      return {
+        success: false,
+        emailSent: false,
+        message: 'Failed to send email',
+      };
+    }
+
+    this.logger.log(
+      `Password reset email sent to ${this.maskEmail(to)} (id: ${data?.id ?? 'n/a'})`,
     );
     return {
       success: true,

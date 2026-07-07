@@ -25,6 +25,8 @@ import { SignupDto } from './dto/signup.dto';
 import { VerifySignupDto } from './dto/verify-signup.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('Authentication')
@@ -312,6 +314,56 @@ export class AuthController {
     return this.authService.adminLogin(
       adminLoginDto.email,
       adminLoginDto.password,
+    );
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({
+    summary: 'Send password reset link',
+    description:
+      'Verify that the provided email or phone exists, then send a password reset link to the user email. The link expires in 10 minutes.',
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Password reset link sent',
+    schema: {
+      example: {
+        success: true,
+        message: 'Password reset link sent to your email',
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({
+    status: 400,
+    description: 'User has no email address or email sending failed',
+  })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({
+    summary: 'Reset password with email link token',
+    description:
+      'Reset a user password using the token received by email. The token expires in 10 minutes.',
+  })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Password reset successfully',
+    schema: {
+      example: {
+        message: 'Password reset successfully',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Invalid or expired reset link' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
     );
   }
 
