@@ -41,6 +41,8 @@ export class ProductsController {
   // ==================== Non-Admin Routes ====================
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create a new product (for non-admin users)',
     description: 'Create a new product. Requires authentication.',
@@ -76,6 +78,8 @@ export class ProductsController {
   }
 
   @Post('add-template')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Add products and categories from templates to a store',
     description:
@@ -122,6 +126,8 @@ export class ProductsController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STAFF, UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'List all products',
     description:
@@ -204,6 +210,8 @@ export class ProductsController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STAFF, UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get product by ID',
     description:
@@ -251,6 +259,8 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Update product (for non-admin users)',
     description: 'Update product information. Requires authentication.',
@@ -294,6 +304,8 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Delete product',
     description: 'Delete a product by its ID. Requires authentication.',

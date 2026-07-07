@@ -22,11 +22,15 @@ import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { GetClientsDto } from './dto/get-clients.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 import { ClientType } from './entities/client.entity';
 
 @ApiTags('Clients')
 @Controller('clients')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
 @ApiBearerAuth()
 export class ClientsController {
   constructor(private clientsService: ClientsService) {}

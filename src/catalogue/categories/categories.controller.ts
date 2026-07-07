@@ -24,6 +24,9 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../users/entities/user.entity';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -33,6 +36,8 @@ export class CategoriesController {
   constructor(private categoriesService: CategoriesService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create a new category',
     description:
@@ -70,6 +75,8 @@ export class CategoriesController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STAFF, UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'List categories',
     description:
@@ -135,6 +142,8 @@ export class CategoriesController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STAFF, UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get category by ID',
     description:
@@ -179,6 +188,8 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Update category',
     description: 'Store admin: category must belong to their store.',
@@ -223,6 +234,8 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Delete category',
     description: 'Store admin: category must belong to their store.',

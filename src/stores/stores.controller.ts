@@ -37,7 +37,8 @@ import { StoreStatus } from './entities/store.entity';
 
 @ApiTags('Stores')
 @Controller('stores')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
 @ApiBearerAuth()
 export class StoresController {
   constructor(private readonly storesService: StoresService) {}

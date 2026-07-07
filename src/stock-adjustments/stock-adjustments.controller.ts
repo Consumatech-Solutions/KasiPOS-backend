@@ -17,13 +17,17 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 import { StockAdjustmentsService } from './stock-adjustments.service';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 import { GetStockAdjustmentsDto } from './dto/get-stock-adjustments.dto';
 
 @ApiTags('Stock Adjustments')
 @Controller('stock-adjustments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
 @ApiBearerAuth()
 export class StockAdjustmentsController {
   constructor(

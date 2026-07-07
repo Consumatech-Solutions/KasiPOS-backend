@@ -19,6 +19,9 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
@@ -33,6 +36,8 @@ export class VouchersController {
   constructor(private readonly vouchersService: VouchersService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create a voucher',
     description:
@@ -59,6 +64,8 @@ export class VouchersController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'List vouchers',
     description:
@@ -107,6 +114,8 @@ export class VouchersController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get voucher by ID',
     description:
@@ -131,6 +140,8 @@ export class VouchersController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Update voucher',
     description:
@@ -160,6 +171,8 @@ export class VouchersController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Delete voucher',
     description: 'Delete a voucher. Requires authentication.',
@@ -183,6 +196,8 @@ export class VouchersController {
   }
 
   @Post('validate')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.STAFF, UserRole.STORE_ADMIN, UserRole.ADMIN)
   @ApiOperation({
     summary: 'Validate voucher for redemption',
     description:
