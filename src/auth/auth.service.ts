@@ -27,6 +27,7 @@ import { LoginDto } from './dto/login.dto';
 @Injectable()
 export class AuthService {
   private static readonly RESET_TOKEN_EXPIRY_DAYS = 7;
+  private static readonly PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 10;
   private static readonly SHORT_TOKEN_BYTES = 8; // 16 hex chars
 
   constructor(
@@ -373,6 +374,84 @@ export class AuthService {
     return { accessToken, user: updatedUser };
   }
 
+  async forgotPassword(
+    identifier: { email?: string; phone?: string },
+  ): Promise<{ success: boolean; message: string }> {
+    let user: User | null = null;
+
+    if (identifier.email) {
+      user = await this.usersService.findByEmail(
+        identifier.email.trim().toLowerCase(),
+      );
+    } else if (identifier.phone) {
+      user = await this.usersService.findByPhone(identifier.phone.trim());
+    }
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    if (!user.email) {
+      throw new BadRequestException(
+        identifier.phone
+          ? 'This user does not have an email address.'
+          : 'This user does not have an email address for password reset.',
+      );
+    }
+
+    const token = await this.createPasswordResetToken(user.id);
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL')?.split(',')[0]?.trim() ||
+      '';
+    const resetLink = frontendUrl
+      ? `${frontendUrl}/reset-password?token=${token}`
+      : `http://localhost:${process.env.PORT || 3001}/auth/reset-password?token=${token}`;
+
+    const emailResult = await this.emailService.sendPasswordResetLink(
+      user.email,
+      resetLink,
+    );
+
+    if (!emailResult.success) {
+      throw new BadRequestException('Failed to send reset password email');
+    }
+
+    return {
+      success: true,
+      message: emailResult.emailSent
+        ? 'Password reset link sent to your email'
+        : emailResult.message,
+    };
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const record = await this.storeAdminResetTokenRepository.findOne({
+      where: { token: token.trim() },
+      relations: ['user'],
+    });
+
+    if (!record) {
+      throw new UnauthorizedException('Invalid or expired reset link');
+    }
+
+    if (new Date() > record.expiresAt) {
+      await this.storeAdminResetTokenRepository.remove(record);
+      throw new UnauthorizedException('Reset link has expired');
+    }
+
+    await this.usersService.update(record.userId, { password: newPassword } as any);
+    await this.storeAdminResetTokenRepository.delete({ userId: record.userId });
+
+    return { message: 'Password reset successfully' };
+  }
+
   async setPassword(
     userId: string,
     password: string,
@@ -495,6 +574,20 @@ export class AuthService {
       expiresAt.getDate() + AuthService.RESET_TOKEN_EXPIRY_DAYS,
     );
     const token = randomBytes(AuthService.SHORT_TOKEN_BYTES).toString('hex');
+    await this.storeAdminResetTokenRepository.save({
+      userId,
+      token,
+      expiresAt,
+    });
+    return token;
+  }
+
+  async createPasswordResetToken(userId: string): Promise<string> {
+    const expiresAt = new Date(
+      Date.now() + AuthService.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES * 60_000,
+    );
+    const token = randomBytes(AuthService.SHORT_TOKEN_BYTES).toString('hex');
+    await this.storeAdminResetTokenRepository.delete({ userId });
     await this.storeAdminResetTokenRepository.save({
       userId,
       token,

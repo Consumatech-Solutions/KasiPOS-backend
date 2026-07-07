@@ -161,6 +161,63 @@ export class EmailService {
     };
   }
 
+  async sendPasswordResetLink(
+    to: string,
+    resetLink: string,
+  ): Promise<SendVerificationCodeResult> {
+    if (this.shouldSkipSendingInDevelopment()) {
+      this.logDevelopmentBypass(
+        'Password reset',
+        `Reset link for ${this.maskEmail(to)}: ${resetLink}`,
+      );
+      return {
+        success: true,
+        emailSent: false,
+        message:
+          'Password reset link generated. Email was not sent because development email sending is disabled.',
+      };
+    }
+
+    if (!this.isResendConfigured()) {
+      this.logger.warn(
+        'Resend is not configured. Password reset email was not sent to ' +
+          this.maskEmail(to),
+      );
+      return {
+        success: true,
+        emailSent: false,
+        message: 'Email was not sent because Resend is not configured.',
+      };
+    }
+
+    const { data, error } = await this.resend!.emails.send({
+      from: this.from,
+      to: [to],
+      subject: 'Reset your KasiPOS password',
+      html: `<p>You requested a password reset.</p><p><a href="${resetLink}">Reset your password</a></p><p>This link expires in 10 minutes.</p><p>If you did not request this, you can ignore this email.</p>`,
+    });
+
+    if (error) {
+      this.logger.error(
+        `Resend password reset error for ${this.maskEmail(to)}: ${JSON.stringify(error)}`,
+      );
+      return {
+        success: false,
+        emailSent: false,
+        message: 'Failed to send email',
+      };
+    }
+
+    this.logger.log(
+      `Password reset email sent to ${this.maskEmail(to)} (id: ${data?.id ?? 'n/a'})`,
+    );
+    return {
+      success: true,
+      emailSent: true,
+      message: 'Email sent successfully',
+    };
+  }
+
   private maskEmail(email: string): string {
     const [local, domain] = email.split('@');
     if (!domain) return '***';
