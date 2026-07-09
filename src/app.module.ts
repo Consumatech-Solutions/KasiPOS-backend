@@ -61,6 +61,7 @@ import { SettingsModule } from './settings/settings.module';
 import { StoreSettings } from './settings/entities/store-settings.entity';
 import { NotificationsModule } from './notifications/notifications.module';
 import { Notification } from './notifications/entities/notification.entity';
+import { DashboardStatsModule } from './dashboard-stats/dashboard-stats.module';
 
 @Module({
   imports: [
@@ -148,6 +149,7 @@ import { Notification } from './notifications/entities/notification.entity';
     StatsModule,
     SettingsModule,
     NotificationsModule,
+    DashboardStatsModule,
   ],
   controllers: [AppController],
   providers: [
