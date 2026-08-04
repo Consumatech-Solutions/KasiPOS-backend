@@ -12,7 +12,8 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { StoreCurrency } from '../../settings/entities/store-settings.entity';
 
 export class TransactionDiscountDto {
   @IsIn(['amount', 'percentage'], {
@@ -95,6 +96,14 @@ export class CreateTransactionDto {
   @Type(() => Number)
   @IsNumber()
   total: number;
+
+  @ApiProperty({
+    description: 'Currency used for this transaction',
+    enum: [StoreCurrency.USD, StoreCurrency.CDF, StoreCurrency.ZAR],
+    example: StoreCurrency.USD,
+  })
+  @IsIn([StoreCurrency.USD, StoreCurrency.CDF, StoreCurrency.ZAR])
+  currency: StoreCurrency;
 
   @IsIn(['Cash', 'Card', 'Mobile Money', 'Credit'])
   paymentMethod: 'Cash' | 'Card' | 'Mobile Money' | 'Credit';

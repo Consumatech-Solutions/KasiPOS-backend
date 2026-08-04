@@ -115,6 +115,13 @@ export class TransactionsController {
     type: String,
     description: 'Search by transaction ID',
   })
+  @ApiQuery({
+    name: 'currency',
+    required: false,
+    type: String,
+    enum: ['USD', 'CDF', 'ZAR'],
+    description: 'Filter by transaction currency',
+  })
   @ApiResponse({
     status: 200,
     description: 'Transactions retrieved successfully',

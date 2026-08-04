@@ -15,6 +15,10 @@ import { PaginationResult } from '../common/dto/pagination.dto';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { TempIdMappingsService } from '../common/temp-id-mappings/temp-id-mappings.service';
 import { SettingsService } from '../settings/settings.service';
+import {
+  StoreCurrency,
+  StoreSettings,
+} from '../settings/entities/store-settings.entity';
 import { CreditReminderService } from './credit-reminder.service';
 import { computeCreditDueAt } from './utils/credit-due.util';
 import { CreateTransactionResult } from './types/create-transaction-result.type';
@@ -50,6 +54,8 @@ export class TransactionsService {
       ...dto,
       items: dto.items.map((item) => ({ ...item })),
     };
+
+    await this.validateTransactionCurrency(dtoResolved);
 
     let isOfflineRequest = false;
     let pendingCustomerTempId: string | null = null;
@@ -355,6 +361,7 @@ export class TransactionsService {
       paymentMethod: dtoResolved.paymentMethod,
       status,
       total: dtoResolved.total,
+      currency: dtoResolved.currency,
       voucherCode: dtoResolved.voucherCode ?? null,
       discount: dtoResolved.discount ?? null,
       creditDetails,
@@ -454,7 +461,7 @@ export class TransactionsService {
     query: GetTransactionsDto,
     storeId: string,
   ): Promise<PaginationResult<Transaction>> {
-    const { page = 1, limit = 10, date, customerId, search } = query;
+    const { page = 1, limit = 10, date, customerId, search, currency } = query;
 
     const queryBuilder = this.transactionsRepository
       .createQueryBuilder('transaction')
@@ -485,6 +492,12 @@ export class TransactionsService {
       });
     }
 
+    if (currency) {
+      queryBuilder.andWhere('transaction.currency = :currency', {
+        currency,
+      });
+    }
+
     const skip = (page - 1) * limit;
     queryBuilder.skip(skip).take(limit);
 
@@ -511,5 +524,44 @@ export class TransactionsService {
     }
 
     return transaction;
+  }
+
+  private async validateTransactionCurrency(
+    dto: CreateTransactionDto,
+  ): Promise<void> {
+    const settings = await this.settingsService.getForStore(dto.storeId);
+    if (dto.currency === settings.currency) {
+      return;
+    }
+
+    this.ensureExchangeRateConfigured(dto.currency, settings.currency, settings);
+  }
+
+  private ensureExchangeRateConfigured(
+    from: StoreCurrency,
+    to: StoreCurrency,
+    settings: StoreSettings,
+  ): void {
+    if (from === to) {
+      return;
+    }
+
+    const hasCdfRate = Number(settings.cdfUsdExRate ?? 0) > 0;
+    const hasZarRate = Number(settings.zarUsdExRate ?? 0) > 0;
+
+    const hasRequiredRate =
+      (from === StoreCurrency.USD && to === StoreCurrency.CDF) ||
+      (from === StoreCurrency.CDF && to === StoreCurrency.USD)
+        ? hasCdfRate
+        : (from === StoreCurrency.USD && to === StoreCurrency.ZAR) ||
+            (from === StoreCurrency.ZAR && to === StoreCurrency.USD)
+          ? hasZarRate
+          : hasCdfRate && hasZarRate;
+
+    if (!hasRequiredRate) {
+      throw new BadRequestException(
+        `Exchange rate is not set for ${from}/${to} conversion in store settings.`,
+      );
+    }
   }
 }

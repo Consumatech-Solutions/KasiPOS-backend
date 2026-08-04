@@ -1,6 +1,13 @@
-import { IsOptional, IsString, IsDateString, IsUUID } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsUUID,
+  IsIn,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { StoreCurrency } from '../../settings/entities/store-settings.entity';
 
 export class GetTransactionsDto extends PaginationDto {
   @ApiPropertyOptional({
@@ -24,4 +31,13 @@ export class GetTransactionsDto extends PaginationDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by transaction currency',
+    enum: [StoreCurrency.USD, StoreCurrency.CDF, StoreCurrency.ZAR],
+    example: StoreCurrency.USD,
+  })
+  @IsOptional()
+  @IsIn([StoreCurrency.USD, StoreCurrency.CDF, StoreCurrency.ZAR])
+  currency?: StoreCurrency;
 }
