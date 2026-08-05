@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction, TransactionStatus } from '../transactions/entities/transaction.entity';
@@ -6,6 +6,11 @@ import { Customer } from '../customers/entities/customer.entity';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { GetDashboardStatsDto } from './dto/get-dashboard-stats.dto';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
+import { SettingsService } from '../settings/settings.service';
+import {
+  StoreCurrency,
+  StoreSettings,
+} from '../settings/entities/store-settings.entity';
 
 function getLocalDayBounds(): { startOfDay: Date; endOfDay: Date } {
   const now = new Date();
@@ -74,6 +79,17 @@ function parseDecimal(value: string | number | null | undefined): number {
   return parseFloat(String(value ?? '0')) || 0;
 }
 
+type CurrencySumRow = {
+  currency: StoreCurrency;
+  sum: string | number;
+};
+
+type CurrencyTrendRow = {
+  date: string;
+  currency: StoreCurrency;
+  sales: string | number;
+};
+
 @Injectable()
 export class DashboardStatsService {
   constructor(
@@ -81,6 +97,7 @@ export class DashboardStatsService {
     private readonly transactionsRepository: Repository<Transaction>,
     @InjectRepository(Customer)
     private readonly customersRepository: Repository<Customer>,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async getDashboardStats(
@@ -92,6 +109,7 @@ export class DashboardStatsService {
     const { startOfDay, endOfDay } = getLocalDayBounds();
     const { startDate, endDate, rangeStart } = getLocalTrendRange();
     const timezone = getServerTimezone();
+    const settings = await this.settingsService.getForStore(storeId);
 
     const [
       totalSales,
@@ -102,16 +120,24 @@ export class DashboardStatsService {
       recentSales,
       salesTrend,
     ] = await Promise.all([
-      this.getTotalSales(storeId),
-      this.getTodaySales(storeId, startOfDay, endOfDay),
+      this.getTotalSales(storeId, settings),
+      this.getTodaySales(storeId, startOfDay, endOfDay, settings),
       this.getTotalCustomers(storeId),
-      this.getOutstandingCredits(storeId),
+      this.getOutstandingCredits(storeId, settings),
       this.getCustomersOnCredit(storeId, page, limit),
       this.getRecentSales(storeId),
-      this.getSalesTrend(storeId, startDate, endDate, rangeStart, timezone),
+      this.getSalesTrend(
+        storeId,
+        startDate,
+        endDate,
+        rangeStart,
+        timezone,
+        settings,
+      ),
     ]);
 
     return {
+      currency: settings.currency,
       totalSales,
       todaySales,
       totalCustomers,
@@ -122,32 +148,40 @@ export class DashboardStatsService {
     };
   }
 
-  private async getTotalSales(storeId: string): Promise<number> {
-    const result = await this.transactionsRepository
+  private async getTotalSales(
+    storeId: string,
+    settings: StoreSettings,
+  ): Promise<number> {
+    const rows = await this.transactionsRepository
       .createQueryBuilder('t')
-      .select('COALESCE(SUM(t.total), 0)', 'sum')
+      .select('t.currency', 'currency')
+      .addSelect('COALESCE(SUM(t.total), 0)', 'sum')
       .where('t.store_id = :storeId', { storeId })
       .andWhere('t.status = :status', { status: TransactionStatus.PAID })
-      .getRawOne<{ sum: string }>();
+      .groupBy('t.currency')
+      .getRawMany<CurrencySumRow>();
 
-    return parseDecimal(result?.sum);
+    return this.normalizeCurrencyRows(rows, settings);
   }
 
   private async getTodaySales(
     storeId: string,
     startOfDay: Date,
     endOfDay: Date,
+    settings: StoreSettings,
   ): Promise<number> {
-    const result = await this.transactionsRepository
+    const rows = await this.transactionsRepository
       .createQueryBuilder('t')
-      .select('COALESCE(SUM(t.total), 0)', 'sum')
+      .select('t.currency', 'currency')
+      .addSelect('COALESCE(SUM(t.total), 0)', 'sum')
       .where('t.store_id = :storeId', { storeId })
       .andWhere('t.status = :status', { status: TransactionStatus.PAID })
       .andWhere('t.created_at >= :startOfDay', { startOfDay })
       .andWhere('t.created_at < :endOfDay', { endOfDay })
-      .getRawOne<{ sum: string }>();
+      .groupBy('t.currency')
+      .getRawMany<CurrencySumRow>();
 
-    return parseDecimal(result?.sum);
+    return this.normalizeCurrencyRows(rows, settings);
   }
 
   private async getTotalCustomers(storeId: string): Promise<number> {
@@ -161,16 +195,21 @@ export class DashboardStatsService {
     return parseInt(result?.count ?? '0', 10) || 0;
   }
 
-  private async getOutstandingCredits(storeId: string): Promise<number> {
-    const result = await this.transactionsRepository
+  private async getOutstandingCredits(
+    storeId: string,
+    settings: StoreSettings,
+  ): Promise<number> {
+    const rows = await this.transactionsRepository
       .createQueryBuilder('t')
-      .select('COALESCE(SUM(t.total), 0)', 'sum')
+      .select('t.currency', 'currency')
+      .addSelect('COALESCE(SUM(t.total), 0)', 'sum')
       .where('t.store_id = :storeId', { storeId })
       .andWhere('t.payment_method = :paymentMethod', { paymentMethod: 'Credit' })
       .andWhere('t.status = :status', { status: TransactionStatus.PENDING })
-      .getRawOne<{ sum: string }>();
+      .groupBy('t.currency')
+      .getRawMany<CurrencySumRow>();
 
-    return parseDecimal(result?.sum);
+    return this.normalizeCurrencyRows(rows, settings);
   }
 
   private async getCustomersOnCredit(
@@ -233,6 +272,7 @@ export class DashboardStatsService {
     endDate: string,
     rangeStart: Date,
     timezone: string,
+    settings: StoreSettings,
   ): Promise<Array<{ date: string; sales: number }>> {
     const rows = await this.transactionsRepository.query(
       `
@@ -245,14 +285,15 @@ export class DashboardStatsService {
       ),
       sales AS (
         SELECT DATE(t.created_at AT TIME ZONE $4) AS day,
+               t.currency AS currency,
                COALESCE(SUM(t.total), 0) AS sales
         FROM transactions t
         WHERE t.store_id = $1
           AND t.status = $5
           AND t.created_at >= $6
-        GROUP BY 1
+        GROUP BY 1, 2
       )
-      SELECT d.day::text AS date, COALESCE(s.sales, 0) AS sales
+      SELECT d.day::text AS date, s.currency AS currency, COALESCE(s.sales, 0) AS sales
       FROM days d
       LEFT JOIN sales s ON s.day = d.day
       ORDER BY d.day
@@ -267,9 +308,124 @@ export class DashboardStatsService {
       ],
     );
 
-    return rows.map((row: { date: string; sales: string | number }) => ({
-      date: row.date,
-      sales: parseDecimal(row.sales),
+    return this.normalizeTrendRows(rows as CurrencyTrendRow[], settings);
+  }
+
+  private normalizeCurrencyRows(
+    rows: CurrencySumRow[],
+    settings: StoreSettings,
+  ): number {
+    return rows.reduce((sum, row) => {
+      if (!row.currency) {
+        return sum;
+      }
+      return (
+        sum +
+        this.convertAmount(
+          parseDecimal(row.sum),
+          row.currency,
+          settings.currency,
+          settings,
+        )
+      );
+    }, 0);
+  }
+
+  private normalizeTrendRows(
+    rows: CurrencyTrendRow[],
+    settings: StoreSettings,
+  ): Array<{ date: string; sales: number }> {
+    const totalsByDate = new Map<string, number>();
+
+    for (const row of rows) {
+      const current = totalsByDate.get(row.date) ?? 0;
+      const increment = row.currency
+        ? this.convertAmount(
+            parseDecimal(row.sales),
+            row.currency,
+            settings.currency,
+            settings,
+          )
+        : 0;
+      totalsByDate.set(row.date, current + increment);
+    }
+
+    return [...totalsByDate.entries()].map(([date, sales]) => ({
+      date,
+      sales,
     }));
+  }
+
+  private convertAmount(
+    amount: number,
+    from: StoreCurrency,
+    to: StoreCurrency,
+    settings: StoreSettings,
+  ): number {
+    if (from === to) {
+      return amount;
+    }
+
+    const cdfRate = this.requireRate(
+      settings.cdfUsdExRate,
+      from,
+      to,
+      StoreCurrency.CDF,
+    );
+    const zarRate = this.requireRate(
+      settings.zarUsdExRate,
+      from,
+      to,
+      StoreCurrency.ZAR,
+    );
+
+    if (from === StoreCurrency.USD && to === StoreCurrency.CDF) {
+      return amount * cdfRate;
+    }
+    if (from === StoreCurrency.CDF && to === StoreCurrency.USD) {
+      return amount / cdfRate;
+    }
+    if (from === StoreCurrency.USD && to === StoreCurrency.ZAR) {
+      return amount * zarRate;
+    }
+    if (from === StoreCurrency.ZAR && to === StoreCurrency.USD) {
+      return amount / zarRate;
+    }
+    if (from === StoreCurrency.CDF && to === StoreCurrency.ZAR) {
+      return (amount / cdfRate) * zarRate;
+    }
+    if (from === StoreCurrency.ZAR && to === StoreCurrency.CDF) {
+      return (amount / zarRate) * cdfRate;
+    }
+
+    return amount;
+  }
+
+  private requireRate(
+    rate: number | null,
+    from: StoreCurrency,
+    to: StoreCurrency,
+    targetCurrency: StoreCurrency,
+  ): number {
+    const parsed = Number(rate ?? 0);
+    const needed =
+      (from === StoreCurrency.USD && to === targetCurrency) ||
+      (from === targetCurrency && to === StoreCurrency.USD) ||
+      ((from === StoreCurrency.CDF && to === StoreCurrency.ZAR) &&
+        targetCurrency === StoreCurrency.CDF) ||
+      ((from === StoreCurrency.ZAR && to === StoreCurrency.CDF) &&
+        targetCurrency === StoreCurrency.CDF) ||
+      ((from === StoreCurrency.CDF && to === StoreCurrency.ZAR) &&
+        targetCurrency === StoreCurrency.ZAR) ||
+      ((from === StoreCurrency.ZAR && to === StoreCurrency.CDF) &&
+        targetCurrency === StoreCurrency.ZAR);
+
+    if (needed && parsed <= 0) {
+      throw new BadRequestException(
+        `Exchange rate is not set for ${from}/${to} conversion in store settings.`,
+      );
+    }
+
+    return parsed;
   }
 }

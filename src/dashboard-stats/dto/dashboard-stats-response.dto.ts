@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { StoreCurrency } from '../../settings/entities/store-settings.entity';
 
 export class DashboardStatsPaginationMetaDto {
   @ApiProperty({ example: 12 })
@@ -35,6 +36,13 @@ export class DashboardStatsSalesTrendItemDto {
 }
 
 export class DashboardStatsResponseDto {
+  @ApiProperty({
+    enum: [StoreCurrency.USD, StoreCurrency.CDF, StoreCurrency.ZAR],
+    example: StoreCurrency.USD,
+    description: 'Principal store currency used to normalize monetary values',
+  })
+  currency: StoreCurrency;
+
   @ApiProperty({ example: 45000.5 })
   totalSales: number;
 

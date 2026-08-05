@@ -4,9 +4,10 @@ import { Transaction } from '../transactions/entities/transaction.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { DashboardStatsController } from './dashboard-stats.controller';
 import { DashboardStatsService } from './dashboard-stats.service';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Transaction, Customer])],
+  imports: [TypeOrmModule.forFeature([Transaction, Customer]), SettingsModule],
   controllers: [DashboardStatsController],
   providers: [DashboardStatsService],
   exports: [DashboardStatsService],
