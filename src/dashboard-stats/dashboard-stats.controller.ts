@@ -32,7 +32,7 @@ export class DashboardStatsController {
   @ApiOperation({
     summary: 'Get store dashboard stats (store admin)',
     description:
-      'Returns aggregated store dashboard metrics including sales totals, customer counts, outstanding credit, recent sales, and a 7-day sales trend. Monetary values are normalized to the store principal currency from settings. customersOnCredit supports page/limit pagination.',
+      'Returns store dashboard KPIs plus approaching/overdue credits, stock alerts, and top products. Monetary values are normalized to the store principal currency. Shared page/limit paginates creditsToRecover, overdueCredits, lowStockProducts, and noStockProducts.',
   })
   @ApiResponse({
     status: 200,

@@ -1,11 +1,20 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Transaction, TransactionStatus } from '../transactions/entities/transaction.entity';
+import {
+  Transaction,
+  TransactionStatus,
+} from '../transactions/entities/transaction.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { Product } from '../catalogue/products/entities/product.entity';
 import { PaginationResult } from '../common/dto/pagination.dto';
 import { GetDashboardStatsDto } from './dto/get-dashboard-stats.dto';
-import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
+import {
+  ApproachingDueDateGroupDto,
+  CreditListItemDto,
+  DashboardStatsResponseDto,
+  ProductSalesStatDto,
+} from './dto/dashboard-stats-response.dto';
 import { SettingsService } from '../settings/settings.service';
 import {
   StoreCurrency,
@@ -35,48 +44,17 @@ function getLocalDayBounds(): { startOfDay: Date; endOfDay: Date } {
   return { startOfDay, endOfDay };
 }
 
-function formatLocalDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function getLocalTrendRange(): {
-  startDate: string;
-  endDate: string;
-  rangeStart: Date;
-} {
-  const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const start = new Date(end);
-  start.setDate(start.getDate() - 6);
-  const rangeStart = new Date(
-    start.getFullYear(),
-    start.getMonth(),
-    start.getDate(),
-    0,
-    0,
-    0,
-    0,
-  );
-  return {
-    startDate: formatLocalDate(start),
-    endDate: formatLocalDate(end),
-    rangeStart,
-  };
-}
-
-function getServerTimezone(): string {
-  return (
-    Intl.DateTimeFormat().resolvedOptions().timeZone ||
-    process.env.TZ ||
-    'UTC'
-  );
-}
-
 function parseDecimal(value: string | number | null | undefined): number {
   return parseFloat(String(value ?? '0')) || 0;
+}
+
+function paginationMeta(total: number, page: number, limit: number) {
+  return {
+    total,
+    page,
+    limit,
+    totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+  };
 }
 
 type CurrencySumRow = {
@@ -84,10 +62,27 @@ type CurrencySumRow = {
   sum: string | number;
 };
 
-type CurrencyTrendRow = {
-  date: string;
+type CreditListRow = {
+  id: string;
+  clientName: string;
+  total: string | number;
   currency: StoreCurrency;
-  sales: string | number;
+  dueDate: Date | string;
+};
+
+type ApproachingCreditRow = {
+  id: string;
+  customerId: string;
+  total: string | number;
+  currency: StoreCurrency;
+  dueDate: Date | string;
+};
+
+type ProductAggRow = {
+  productId: string;
+  unitsSold: string | number;
+  revenue: string | number;
+  currency: StoreCurrency;
 };
 
 @Injectable()
@@ -97,6 +92,8 @@ export class DashboardStatsService {
     private readonly transactionsRepository: Repository<Transaction>,
     @InjectRepository(Customer)
     private readonly customersRepository: Repository<Customer>,
+    @InjectRepository(Product)
+    private readonly productsRepository: Repository<Product>,
     private readonly settingsService: SettingsService,
   ) {}
 
@@ -107,8 +104,6 @@ export class DashboardStatsService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const { startOfDay, endOfDay } = getLocalDayBounds();
-    const { startDate, endDate, rangeStart } = getLocalTrendRange();
-    const timezone = getServerTimezone();
     const settings = await this.settingsService.getForStore(storeId);
 
     const [
@@ -116,25 +111,35 @@ export class DashboardStatsService {
       todaySales,
       totalCustomers,
       outstandingCredits,
-      customersOnCredit,
-      recentSales,
-      salesTrend,
+      approachingDueDates,
+      creditsToRecover,
+      overdueCredits,
+      lowStockProducts,
+      noStockProducts,
+      productAggRows,
     ] = await Promise.all([
       this.getTotalSales(storeId, settings),
       this.getTodaySales(storeId, startOfDay, endOfDay, settings),
       this.getTotalCustomers(storeId),
       this.getOutstandingCredits(storeId, settings),
-      this.getCustomersOnCredit(storeId, page, limit),
-      this.getRecentSales(storeId),
-      this.getSalesTrend(
-        storeId,
-        startDate,
-        endDate,
-        rangeStart,
-        timezone,
-        settings,
-      ),
+      this.getApproachingDueDates(storeId, settings),
+      this.getCreditsList(storeId, page, limit, settings, 'upcoming'),
+      this.getCreditsList(storeId, page, limit, settings, 'overdue'),
+      this.getLowStockProducts(storeId, page, limit),
+      this.getNoStockProducts(storeId, page, limit),
+      this.getProductSalesAggregates(storeId),
     ]);
+
+    const productSales = this.normalizeProductSales(productAggRows, settings);
+    const mostSoldProducts = [...productSales]
+      .sort((a, b) => b.unitsSold - a.unitsSold || b.revenue - a.revenue)
+      .slice(0, 5);
+    const mostProfitableProduct =
+      productSales.length === 0
+        ? null
+        : [...productSales].sort(
+            (a, b) => b.revenue - a.revenue || b.unitsSold - a.unitsSold,
+          )[0];
 
     return {
       currency: settings.currency,
@@ -142,9 +147,13 @@ export class DashboardStatsService {
       todaySales,
       totalCustomers,
       outstandingCredits,
-      customersOnCredit,
-      recentSales,
-      salesTrend,
+      approachingDueDates,
+      creditsToRecover,
+      overdueCredits,
+      lowStockProducts,
+      noStockProducts,
+      mostSoldProducts,
+      mostProfitableProduct,
     };
   }
 
@@ -212,103 +221,314 @@ export class DashboardStatsService {
     return this.normalizeCurrencyRows(rows, settings);
   }
 
-  private async getCustomersOnCredit(
+  private async getApproachingDueDates(
+    storeId: string,
+    settings: StoreSettings,
+  ): Promise<ApproachingDueDateGroupDto[]> {
+    const dueDateRows: Array<{ dueDate: Date | string }> =
+      await this.transactionsRepository.query(
+        `
+        SELECT t.credit_due_at AS "dueDate"
+        FROM transactions t
+        WHERE t.store_id = $1
+          AND t.payment_method = 'Credit'
+          AND t.status = $2
+          AND t.credit_due_at IS NOT NULL
+          AND t.credit_due_at >= NOW()
+        GROUP BY t.credit_due_at
+        ORDER BY t.credit_due_at ASC
+        LIMIT 2
+        `,
+        [storeId, TransactionStatus.PENDING],
+      );
+
+    if (!dueDateRows.length) {
+      return [];
+    }
+
+    const dueDates = dueDateRows.map((row) => new Date(row.dueDate));
+
+    const creditRows: ApproachingCreditRow[] =
+      await this.transactionsRepository.query(
+        `
+        SELECT
+          t.id AS id,
+          t.customer_id AS "customerId",
+          t.total AS total,
+          t.currency AS currency,
+          t.credit_due_at AS "dueDate"
+        FROM transactions t
+        WHERE t.store_id = $1
+          AND t.payment_method = 'Credit'
+          AND t.status = $2
+          AND t.credit_due_at = ANY($3::timestamptz[])
+        ORDER BY t.credit_due_at ASC, t.created_at ASC
+        `,
+        [storeId, TransactionStatus.PENDING, dueDates],
+      );
+
+    const groups = new Map<string, ApproachingDueDateGroupDto>();
+
+    for (const due of dueDates) {
+      const key = due.toISOString();
+      groups.set(key, {
+        dueDate: key,
+        credits: [],
+        clientsOwingCount: 0,
+        totalAmount: 0,
+      });
+    }
+
+    for (const row of creditRows) {
+      const key = new Date(row.dueDate).toISOString();
+      const group = groups.get(key);
+      if (!group || !row.customerId) {
+        continue;
+      }
+
+      group.credits.push({ id: row.id, customerId: row.customerId });
+      group.totalAmount += this.convertAmount(
+        parseDecimal(row.total),
+        row.currency,
+        settings.currency,
+        settings,
+      );
+    }
+
+    for (const group of groups.values()) {
+      group.clientsOwingCount = new Set(
+        group.credits.map((c) => c.customerId),
+      ).size;
+    }
+
+    return dueDates
+      .map((d) => groups.get(d.toISOString()))
+      .filter((g): g is ApproachingDueDateGroupDto => Boolean(g));
+  }
+
+  private async getCreditsList(
     storeId: string,
     page: number,
     limit: number,
-  ): Promise<PaginationResult<string>> {
+    settings: StoreSettings,
+    mode: 'upcoming' | 'overdue',
+  ): Promise<PaginationResult<CreditListItemDto>> {
     const offset = (page - 1) * limit;
+    const duePredicate =
+      mode === 'upcoming'
+        ? 't.credit_due_at >= NOW()'
+        : 't.credit_due_at < NOW()';
 
     const [countResult, rows] = await Promise.all([
-      this.customersRepository
-        .createQueryBuilder('c')
+      this.transactionsRepository
+        .createQueryBuilder('t')
         .select('COUNT(*)', 'count')
-        .where('c.store_id = :storeId', { storeId })
-        .andWhere('c.outstanding_credit > 0')
-        .andWhere('c.deleted_at IS NULL')
+        .where('t.store_id = :storeId', { storeId })
+        .andWhere('t.payment_method = :paymentMethod', {
+          paymentMethod: 'Credit',
+        })
+        .andWhere('t.status = :status', { status: TransactionStatus.PENDING })
+        .andWhere('t.credit_due_at IS NOT NULL')
+        .andWhere(duePredicate)
         .getRawOne<{ count: string }>(),
-      this.customersRepository
-        .createQueryBuilder('c')
-        .select('c.id', 'id')
-        .where('c.store_id = :storeId', { storeId })
-        .andWhere('c.outstanding_credit > 0')
-        .andWhere('c.deleted_at IS NULL')
-        .orderBy('c.outstanding_credit', 'DESC')
-        .addOrderBy('c.name', 'ASC')
+      this.transactionsRepository
+        .createQueryBuilder('t')
+        .leftJoin(Customer, 'c', 'c.id = t.customer_id')
+        .select('t.id', 'id')
+        .addSelect('COALESCE(c.name, \'\')', 'clientName')
+        .addSelect('t.total', 'total')
+        .addSelect('t.currency', 'currency')
+        .addSelect('t.credit_due_at', 'dueDate')
+        .where('t.store_id = :storeId', { storeId })
+        .andWhere('t.payment_method = :paymentMethod', {
+          paymentMethod: 'Credit',
+        })
+        .andWhere('t.status = :status', { status: TransactionStatus.PENDING })
+        .andWhere('t.credit_due_at IS NOT NULL')
+        .andWhere(duePredicate)
+        .orderBy('t.credit_due_at', 'ASC')
+        .addOrderBy('t.created_at', 'ASC')
         .offset(offset)
         .limit(limit)
-        .getRawMany<{ id: string }>(),
+        .getRawMany<CreditListRow>(),
     ]);
 
     const total = parseInt(countResult?.count ?? '0', 10) || 0;
 
     return {
-      data: rows.map((row) => row.id),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
-      },
+      data: rows.map((row) => ({
+        id: row.id,
+        clientName: row.clientName,
+        totalAmount: this.convertAmount(
+          parseDecimal(row.total),
+          row.currency,
+          settings.currency,
+          settings,
+        ),
+        dueDate: new Date(row.dueDate).toISOString(),
+      })),
+      meta: paginationMeta(total, page, limit),
     };
   }
 
-  private async getRecentSales(storeId: string): Promise<string[]> {
-    const rows = await this.transactionsRepository
-      .createQueryBuilder('t')
-      .select('t.id', 'id')
-      .where('t.store_id = :storeId', { storeId })
-      .andWhere('t.status = :status', { status: TransactionStatus.PAID })
-      .orderBy('t.created_at', 'DESC')
-      .limit(5)
-      .getRawMany<{ id: string }>();
+  private async getLowStockProducts(
+    storeId: string,
+    page: number,
+    limit: number,
+  ): Promise<
+    PaginationResult<{
+      id: string;
+      name: string;
+      stock: number;
+      lowStockThreshold: number;
+    }>
+  > {
+    const offset = (page - 1) * limit;
 
-    return rows.map((row) => row.id);
+    const [countResult, rows] = await Promise.all([
+      this.productsRepository
+        .createQueryBuilder('p')
+        .select('COUNT(*)', 'count')
+        .where('p.store_id = :storeId', { storeId })
+        .andWhere('p.deleted_at IS NULL')
+        .andWhere('p.low_stock_threshold IS NOT NULL')
+        .andWhere('p.stock IS NOT NULL')
+        .andWhere('p.stock > 0')
+        .andWhere('p.stock <= p.low_stock_threshold')
+        .getRawOne<{ count: string }>(),
+      this.productsRepository
+        .createQueryBuilder('p')
+        .select('p.id', 'id')
+        .addSelect('p.name', 'name')
+        .addSelect('p.stock', 'stock')
+        .addSelect('p.low_stock_threshold', 'lowStockThreshold')
+        .where('p.store_id = :storeId', { storeId })
+        .andWhere('p.deleted_at IS NULL')
+        .andWhere('p.low_stock_threshold IS NOT NULL')
+        .andWhere('p.stock IS NOT NULL')
+        .andWhere('p.stock > 0')
+        .andWhere('p.stock <= p.low_stock_threshold')
+        .orderBy('p.stock', 'ASC')
+        .addOrderBy('p.name', 'ASC')
+        .offset(offset)
+        .limit(limit)
+        .getRawMany<{
+          id: string;
+          name: string;
+          stock: string | number;
+          lowStockThreshold: string | number;
+        }>(),
+    ]);
+
+    const total = parseInt(countResult?.count ?? '0', 10) || 0;
+
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        stock: parseInt(String(row.stock), 10) || 0,
+        lowStockThreshold: parseInt(String(row.lowStockThreshold), 10) || 0,
+      })),
+      meta: paginationMeta(total, page, limit),
+    };
   }
 
-  private async getSalesTrend(
+  private async getNoStockProducts(
     storeId: string,
-    startDate: string,
-    endDate: string,
-    rangeStart: Date,
-    timezone: string,
-    settings: StoreSettings,
-  ): Promise<Array<{ date: string; sales: number }>> {
-    const rows = await this.transactionsRepository.query(
-      `
-      WITH days AS (
-        SELECT generate_series(
-          $2::date,
-          $3::date,
-          '1 day'
-        )::date AS day
-      ),
-      sales AS (
-        SELECT DATE(t.created_at AT TIME ZONE $4) AS day,
-               t.currency AS currency,
-               COALESCE(SUM(t.total), 0) AS sales
-        FROM transactions t
-        WHERE t.store_id = $1
-          AND t.status = $5
-          AND t.created_at >= $6
-        GROUP BY 1, 2
-      )
-      SELECT d.day::text AS date, s.currency AS currency, COALESCE(s.sales, 0) AS sales
-      FROM days d
-      LEFT JOIN sales s ON s.day = d.day
-      ORDER BY d.day
-      `,
-      [
-        storeId,
-        startDate,
-        endDate,
-        timezone,
-        TransactionStatus.PAID,
-        rangeStart,
-      ],
-    );
+    page: number,
+    limit: number,
+  ): Promise<PaginationResult<{ id: string; name: string; stock: number }>> {
+    const offset = (page - 1) * limit;
 
-    return this.normalizeTrendRows(rows as CurrencyTrendRow[], settings);
+    const [countResult, rows] = await Promise.all([
+      this.productsRepository
+        .createQueryBuilder('p')
+        .select('COUNT(*)', 'count')
+        .where('p.store_id = :storeId', { storeId })
+        .andWhere('p.deleted_at IS NULL')
+        .andWhere('p.stock = 0')
+        .getRawOne<{ count: string }>(),
+      this.productsRepository
+        .createQueryBuilder('p')
+        .select('p.id', 'id')
+        .addSelect('p.name', 'name')
+        .addSelect('p.stock', 'stock')
+        .where('p.store_id = :storeId', { storeId })
+        .andWhere('p.deleted_at IS NULL')
+        .andWhere('p.stock = 0')
+        .orderBy('p.name', 'ASC')
+        .offset(offset)
+        .limit(limit)
+        .getRawMany<{ id: string; name: string; stock: string | number }>(),
+    ]);
+
+    const total = parseInt(countResult?.count ?? '0', 10) || 0;
+
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        stock: parseInt(String(row.stock), 10) || 0,
+      })),
+      meta: paginationMeta(total, page, limit),
+    };
+  }
+
+  private async getProductSalesAggregates(
+    storeId: string,
+  ): Promise<ProductAggRow[]> {
+    return this.transactionsRepository.query(
+      `
+      SELECT
+        item->>'productId' AS "productId",
+        t.currency AS currency,
+        COALESCE(SUM((item->>'quantity')::numeric), 0) AS "unitsSold",
+        COALESCE(SUM((item->>'totalPrice')::numeric), 0) AS revenue
+      FROM transactions t
+      CROSS JOIN LATERAL jsonb_array_elements(t.items) AS item
+      WHERE t.store_id = $1
+        AND t.status = $2
+        AND item->>'productId' IS NOT NULL
+        AND item->>'productId' <> ''
+      GROUP BY item->>'productId', t.currency
+      `,
+      [storeId, TransactionStatus.PAID],
+    );
+  }
+
+  private normalizeProductSales(
+    rows: ProductAggRow[],
+    settings: StoreSettings,
+  ): ProductSalesStatDto[] {
+    const byProduct = new Map<
+      string,
+      { productId: string; unitsSold: number; revenue: number }
+    >();
+
+    for (const row of rows) {
+      if (!row.productId) {
+        continue;
+      }
+      const current = byProduct.get(row.productId) ?? {
+        productId: row.productId,
+        unitsSold: 0,
+        revenue: 0,
+      };
+      current.unitsSold += parseDecimal(row.unitsSold);
+      current.revenue += this.convertAmount(
+        parseDecimal(row.revenue),
+        row.currency,
+        settings.currency,
+        settings,
+      );
+      byProduct.set(row.productId, current);
+    }
+
+    return [...byProduct.values()].map((item) => ({
+      productId: item.productId,
+      unitsSold: Math.round(item.unitsSold),
+      revenue: item.revenue,
+    }));
   }
 
   private normalizeCurrencyRows(
@@ -329,31 +549,6 @@ export class DashboardStatsService {
         )
       );
     }, 0);
-  }
-
-  private normalizeTrendRows(
-    rows: CurrencyTrendRow[],
-    settings: StoreSettings,
-  ): Array<{ date: string; sales: number }> {
-    const totalsByDate = new Map<string, number>();
-
-    for (const row of rows) {
-      const current = totalsByDate.get(row.date) ?? 0;
-      const increment = row.currency
-        ? this.convertAmount(
-            parseDecimal(row.sales),
-            row.currency,
-            settings.currency,
-            settings,
-          )
-        : 0;
-      totalsByDate.set(row.date, current + increment);
-    }
-
-    return [...totalsByDate.entries()].map(([date, sales]) => ({
-      date,
-      sales,
-    }));
   }
 
   private convertAmount(
@@ -411,13 +606,17 @@ export class DashboardStatsService {
     const needed =
       (from === StoreCurrency.USD && to === targetCurrency) ||
       (from === targetCurrency && to === StoreCurrency.USD) ||
-      ((from === StoreCurrency.CDF && to === StoreCurrency.ZAR) &&
+      (from === StoreCurrency.CDF &&
+        to === StoreCurrency.ZAR &&
         targetCurrency === StoreCurrency.CDF) ||
-      ((from === StoreCurrency.ZAR && to === StoreCurrency.CDF) &&
+      (from === StoreCurrency.ZAR &&
+        to === StoreCurrency.CDF &&
         targetCurrency === StoreCurrency.CDF) ||
-      ((from === StoreCurrency.CDF && to === StoreCurrency.ZAR) &&
+      (from === StoreCurrency.CDF &&
+        to === StoreCurrency.ZAR &&
         targetCurrency === StoreCurrency.ZAR) ||
-      ((from === StoreCurrency.ZAR && to === StoreCurrency.CDF) &&
+      (from === StoreCurrency.ZAR &&
+        to === StoreCurrency.CDF &&
         targetCurrency === StoreCurrency.ZAR);
 
     if (needed && parsed <= 0) {
