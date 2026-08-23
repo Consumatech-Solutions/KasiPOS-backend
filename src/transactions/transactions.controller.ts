@@ -122,6 +122,13 @@ export class TransactionsController {
     enum: ['USD', 'CDF', 'ZAR'],
     description: 'Filter by transaction currency',
   })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    enum: ['pending', 'failed', 'paid'],
+    description: 'Filter by transaction status',
+  })
   @ApiResponse({
     status: 200,
     description: 'Transactions retrieved successfully',

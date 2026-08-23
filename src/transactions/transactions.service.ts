@@ -461,7 +461,15 @@ export class TransactionsService {
     query: GetTransactionsDto,
     storeId: string,
   ): Promise<PaginationResult<Transaction>> {
-    const { page = 1, limit = 10, date, customerId, search, currency } = query;
+    const {
+      page = 1,
+      limit = 10,
+      date,
+      customerId,
+      search,
+      currency,
+      status,
+    } = query;
 
     const queryBuilder = this.transactionsRepository
       .createQueryBuilder('transaction')
@@ -496,6 +504,10 @@ export class TransactionsService {
       queryBuilder.andWhere('transaction.currency = :currency', {
         currency,
       });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('transaction.status = :status', { status });
     }
 
     const skip = (page - 1) * limit;
