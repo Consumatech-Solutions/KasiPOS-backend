@@ -104,6 +104,13 @@ export class ProductSalesStatDto {
   @ApiProperty({ example: 'product-uuid' })
   productId: string;
 
+  @ApiProperty({
+    example: 'Sugar 1kg',
+    description:
+      'Current product name when available; falls back to the name stored on sale line items',
+  })
+  name: string;
+
   @ApiProperty({ example: 42 })
   unitsSold: number;
 

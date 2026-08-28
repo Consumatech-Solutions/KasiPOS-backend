@@ -80,6 +80,7 @@ type ApproachingCreditRow = {
 
 type ProductAggRow = {
   productId: string;
+  name: string | null;
   unitsSold: string | number;
   revenue: string | number;
   currency: StoreCurrency;
@@ -481,11 +482,19 @@ export class DashboardStatsService {
       `
       SELECT
         item->>'productId' AS "productId",
+        COALESCE(
+          MAX(p.name),
+          MAX(NULLIF(item->>'productName', '')),
+          ''
+        ) AS name,
         t.currency AS currency,
         COALESCE(SUM((item->>'quantity')::numeric), 0) AS "unitsSold",
         COALESCE(SUM((item->>'totalPrice')::numeric), 0) AS revenue
       FROM transactions t
       CROSS JOIN LATERAL jsonb_array_elements(t.items) AS item
+      LEFT JOIN products p
+        ON p.id::text = item->>'productId'
+        AND p.deleted_at IS NULL
       WHERE t.store_id = $1
         AND t.status = $2
         AND item->>'productId' IS NOT NULL
@@ -502,7 +511,7 @@ export class DashboardStatsService {
   ): ProductSalesStatDto[] {
     const byProduct = new Map<
       string,
-      { productId: string; unitsSold: number; revenue: number }
+      { productId: string; name: string; unitsSold: number; revenue: number }
     >();
 
     for (const row of rows) {
@@ -511,9 +520,13 @@ export class DashboardStatsService {
       }
       const current = byProduct.get(row.productId) ?? {
         productId: row.productId,
+        name: row.name?.trim() || 'Unknown product',
         unitsSold: 0,
         revenue: 0,
       };
+      if ((!current.name || current.name === 'Unknown product') && row.name?.trim()) {
+        current.name = row.name.trim();
+      }
       current.unitsSold += parseDecimal(row.unitsSold);
       current.revenue += this.convertAmount(
         parseDecimal(row.revenue),
@@ -526,6 +539,7 @@ export class DashboardStatsService {
 
     return [...byProduct.values()].map((item) => ({
       productId: item.productId,
+      name: item.name,
       unitsSold: Math.round(item.unitsSold),
       revenue: item.revenue,
     }));
